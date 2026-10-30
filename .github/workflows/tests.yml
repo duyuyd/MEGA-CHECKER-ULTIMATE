@@ -35,3 +35,5 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Termux pip bootstrap shell tests
         run: bash tests/test_termux_pip_bootstrap.sh
+      - name: GitHub publisher safety dry-run
+        run: bash tests/test_publish_github_termux.sh

@@ -205,17 +205,15 @@ Mật khẩu được nhập bằng chế độ ẩn, không lưu vào database/
 
 Database lưu email đầy đủ để có thể tìm kiếm/đối chiếu; CSV/JSON cũng có thể chứa email đầy đủ. Giữ các tệp này ở nơi riêng tư. Log không ghi nội dung email. Khi chia sẻ báo cáo, kiểm tra và che dữ liệu trước.
 
-## Đưa dự án lên GitHub tự động từ Termux
+## Đồng bộ mã nguồn lên GitHub từ Termux
 
-Bộ dự án có sẵn script tạo repository riêng và đẩy mã nguồn. Script mặc định tạo repository **Private**, không đụng tới các repository khác.
+Script đồng bộ tới repository hiện hữu `duyuyd/MEGA-CHECKER-ULTIMATE`; script **không tạo repository mới**, không đổi visibility và không force-push. Nếu thư mục chưa có `.git`, script clone đúng repository, đồng bộ các tệp nguồn và bỏ qua dataset/báo cáo/database cục bộ trước khi commit.
 
 ```bash
 bash scripts/publish_github_termux.sh
 ```
 
-Lần đầu, GitHub CLI sẽ yêu cầu đăng nhập/xác nhận trên trình duyệt. Sau khi bạn xác nhận, script tự tạo `MEGA-CHECKER-ULTIMATE`, commit và push. Nhấn Enter để giữ Private; chỉ gõ `PUBLIC` khi thật sự muốn công khai mã nguồn. Không nhập hoặc lưu API key trong source.
-
-Sau khi push, GitHub Actions trong `.github/workflows/tests.yml` tự chạy compile check, self-test và unit tests.
+Cần cài `git`, `gh` và đăng nhập GitHub CLI (`gh auth login`). Script dừng nếu tài khoản không nhìn thấy repository, remote/nhánh không khớp hoặc phát hiện tệp có khả năng chứa dữ liệu riêng tư. Sau khi push, GitHub Actions tự chạy workflow QA. Xem `docs/GITHUB_PUBLISH.md` để biết cơ chế an toàn và cách xử lý khi script chủ động dừng.
 
 ## Xác minh DKIM mật mã thật (9.1.0)
 

@@ -26,3 +26,26 @@ ketqua*.json
 # Redacted offline dataset audit reports
 audit_report*.json
 dataset_audit*.json
+# Local synthetic datasets and audit outputs (never publish user datasets)
+dataset_*.txt
+dataset_*.csv
+dataset_*.json
+random_combo_*.txt
+emails.txt
+email_list.txt
+combos.txt
+accounts.txt
+cookies.txt
+tokens.txt
+*.eml
+*.sqlite
+*.sqlite3
+audit_*.json
+root_report*.json
+
+# Local credential-shaped or test input files
+*.eml
+*.sqlite
+*.sqlite3
+cookies.txt
+tokens.txt

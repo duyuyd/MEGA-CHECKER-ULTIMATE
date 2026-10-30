@@ -7,6 +7,8 @@
 - Device diagnostics now report available unprivileged facts when `su` is absent or denied; lack of ROOT is a valid outcome and does not disable the core engine.
 - Dataset reports record the actual `access_mode`; retained `--root-input` as a backwards-compatible alias.
 - Shared parser, HMAC deduplication and SQLite aggregation are used by both access paths.
+- Replaced the old GitHub publisher that could create a duplicate repository with a safe sync flow targeting the existing `duyuyd/MEGA-CHECKER-ULTIMATE` repository only; no repository creation or force-push.
+- Added local-data exclusions, staged-path protection, manifest regeneration, and an offline dry-run test for the publisher.
 
 
 ## 10.0.4 — Parser correctness and validation efficiency
