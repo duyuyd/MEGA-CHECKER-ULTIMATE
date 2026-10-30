@@ -42,7 +42,10 @@ def _android_dns_nameservers(cache_seconds: float = 30.0) -> list[str]:
     global _ANDROID_DNS_CACHE
     now = time.monotonic()
     cached_at, cached_servers = _ANDROID_DNS_CACHE
-    if now - cached_at < cache_seconds:
+    # Timestamp 0.0 is the uninitialized sentinel, not a valid cache entry.
+    # On freshly started CI runners monotonic() can be < cache_seconds, which
+    # would otherwise make the empty initial cache look fresh and skip getprop.
+    if cached_at > 0.0 and 0.0 <= now - cached_at < cache_seconds:
         return list(cached_servers)
 
     servers: list[str] = []
