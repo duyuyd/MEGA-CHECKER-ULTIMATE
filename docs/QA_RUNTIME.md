@@ -41,3 +41,10 @@ python mega_checker.py dkim --domain signer.example --selector selector-from-s-t
 ```
 
 The command prints only selector metadata and DNS result, not the signature `b=` value or email body.
+
+
+## DKIM mobile workflow (9.0.5)
+
+Preferred: export the original email as `.eml` and run `python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml`.
+Optional: copy the full original headers and use `python mega_checker.py dkim --clipboard` when Termux:API is installed.
+Heuristic only: `python mega_checker.py dkim --domain gmail.com --probe-common`. A negative heuristic result does not prove domain-wide DKIM absence.

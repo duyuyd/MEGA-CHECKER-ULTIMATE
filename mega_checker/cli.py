@@ -8,8 +8,8 @@ import uuid
 from pathlib import Path
 from . import APP_NAME, __version__
 from .config import BASE_DIR, load_config, setup_logging
-from .dnsintel import DomainInspector
-from .dkim import parse_dkim_signature_headers, read_header_file, lookup_dkim_signatures, normalize_selector
+from .dnsintel import DomainInspector, DKIM_SELECTORS
+from .dkim import parse_dkim_signature_headers, read_header_file, read_clipboard_header_text, lookup_dkim_signatures, normalize_selector
 from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
 from .pipeline import check_one, read_emails, run_batch
@@ -45,11 +45,13 @@ def _make_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("self-test", help="Chạy bộ tự kiểm tra ngoại tuyến")
-    dkim = sub.add_parser("dkim", help="Tra selector DKIM từ header email hoặc selector nhập tay")
-    dkim_source = dkim.add_mutually_exclusive_group(required=True)
-    dkim_source.add_argument("--headers-file", help="Tệp .eml hoặc tệp chỉ chứa header DKIM-Signature (xử lý cục bộ)")
+    dkim = sub.add_parser("dkim", help="Tra DKIM từ tệp email, clipboard hoặc selector")
+    dkim_source = dkim.add_mutually_exclusive_group(required=False)
+    dkim_source.add_argument("--headers-file", help="Tệp .eml hoặc header DKIM-Signature (xử lý cục bộ)")
+    dkim_source.add_argument("--clipboard", action="store_true", help="Đọc header đang sao chép bằng Termux:API")
     dkim_source.add_argument("--domain", help="Signing domain từ thẻ d= trong DKIM-Signature")
     dkim.add_argument("--selector", action="append", default=[], help="Selector từ thẻ s=; có thể lặp lại")
+    dkim.add_argument("--probe-common", action="store_true", help="Thử một nhóm selector phổ biến; chỉ là heuristic, không toàn diện")
     one = sub.add_parser("single", help="Kiểm tra một email/domain")
     one.add_argument("email")
 
@@ -212,23 +214,52 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dkim":
         try:
-            if args.headers_file:
-                raw_headers = read_header_file(args.headers_file)
+            if not any((args.headers_file, args.clipboard, args.domain)):
+                print("DKIM: chọn một nguồn đầu vào.")
+                print("  Tệp .eml:       python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml")
+                print("  Clipboard:      python mega_checker.py dkim --clipboard")
+                print("  Dò gợi ý:       python mega_checker.py dkim --domain gmail.com --probe-common")
+                print("  Selector biết:  python mega_checker.py dkim --domain example.com --selector selector1")
+                return 2
+
+            if args.headers_file or args.clipboard:
+                if args.selector or args.probe_common:
+                    print("Không kết hợp --selector/--probe-common với --headers-file/--clipboard.", file=sys.stderr)
+                    return 2
+                raw_headers = (
+                    read_header_file(args.headers_file)
+                    if args.headers_file else read_clipboard_header_text()
+                )
                 signatures = parse_dkim_signature_headers(raw_headers)
                 if not signatures:
                     print(json.dumps({
                         "dkim_status": "unknown",
                         "reason": "no_valid_dkim_signature_header",
-                        "message": "Không tìm thấy DKIM-Signature hợp lệ có đủ d= và s= trong tệp."
+                        "message": "Không tìm thấy DKIM-Signature hợp lệ có đủ d= và s=.",
+                        "next_step": "Dùng tệp Original/.eml có đầy đủ header, không chỉ phần nội dung email."
                     }, ensure_ascii=False, indent=2))
                     return 2
             else:
                 domain = normalize_domain(args.domain)
+                if not domain:
+                    print("Domain không hợp lệ. Ví dụ: --domain gmail.com", file=sys.stderr)
+                    return 2
                 selectors = [normalize_selector(item) for item in args.selector]
                 selectors = list(dict.fromkeys(item for item in selectors if item))
-                if not domain or not selectors:
-                    parser.error("Cần domain hợp lệ và ít nhất một --selector hợp lệ.")
-                signatures = [{"domain": domain, "selector": item, "source": "manual"} for item in selectors]
+                if args.probe_common:
+                    for item in DKIM_SELECTORS:
+                        if item not in selectors:
+                            selectors.append(item)
+                if not selectors:
+                    print("Bạn chưa cung cấp selector. Lấy giá trị s= từ header DKIM-Signature, hoặc dùng --probe-common để thử một nhóm gợi ý.", file=sys.stderr)
+                    print("Ví dụ: python mega_checker.py dkim --domain gmail.com --probe-common", file=sys.stderr)
+                    print("Cách chính xác hơn: python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml", file=sys.stderr)
+                    return 2
+                signatures = [{
+                    "domain": domain, "selector": item,
+                    "source": "common-selector-heuristic" if args.probe_common and item in DKIM_SELECTORS and item not in [normalize_selector(x) for x in args.selector] else "manual"
+                } for item in selectors]
+
             result = lookup_dkim_signatures(DomainInspector(config["dns_timeout_seconds"]), signatures)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result.get("dkim_status") in {"present", "revoked"} else 1

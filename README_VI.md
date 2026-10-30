@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 9.0.4
+# MEGA CHECKER ULTIMATE 9.0.5
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -16,7 +16,7 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email.
+- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux.
 
 ## Giới hạn cần hiểu đúng
 
@@ -41,7 +41,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.4_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.5_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
@@ -65,7 +65,19 @@ python mega_checker.py single 'you@example.com'
 Tra DKIM theo header email mẫu (nên dùng một email do bạn nhận được; tệp được xử lý cục bộ):
 
 ```bash
-python mega_checker.py dkim --headers-file ~/storage/downloads/dkim_headers.txt
+python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml
+```
+
+Nếu đã sao chép đầy đủ header vào clipboard và đã cài Termux:API:
+
+```bash
+python mega_checker.py dkim --clipboard
+```
+
+Dò gợi ý một nhóm selector phổ biến (không toàn diện):
+
+```bash
+python mega_checker.py dkim --domain gmail.com --probe-common
 ```
 
 Hoặc tra một selector đã biết:
@@ -74,7 +86,7 @@ Hoặc tra một selector đã biết:
 python mega_checker.py dkim --domain example.com --selector selector1
 ```
 
-Nếu có nhiều selector, lặp `--selector`. Không có header/selector thì chương trình không thể khẳng định selector của domain chỉ từ tên miền.
+Nếu có nhiều selector, lặp `--selector`. Không có header/selector thì chương trình không thể khẳng định selector của domain chỉ từ tên miền. `--probe-common` chỉ dò nhóm tên thường gặp; không tìm thấy không có nghĩa domain không dùng DKIM. Tùy chọn `--clipboard` cần lệnh `termux-clipboard-get` của Termux:API; nếu chưa có, dùng `--headers-file`.
 
 Quét danh sách:
 

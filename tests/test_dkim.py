@@ -1,5 +1,3 @@
-import io
-import json
 import unittest
 from unittest.mock import Mock, patch
 
@@ -8,6 +6,7 @@ from mega_checker.dkim import (
     lookup_dkim_signatures,
     normalize_selector,
     parse_dkim_signature_headers,
+    read_clipboard_header_text,
 )
 
 
@@ -83,6 +82,39 @@ class DKIMHeaderTests(unittest.TestCase):
         inspector._resolve_txt.return_value = (["v=DKIM1; p="], "answer")
         result = lookup_dkim_signatures(inspector, [{"domain":"example.com", "selector":"old"}])
         self.assertEqual(result["dkim_status"], "revoked")
+
+    @patch("mega_checker.dkim.shutil.which", return_value="termux-clipboard-get")
+    @patch("mega_checker.dkim.subprocess.run")
+    def test_clipboard_reader_returns_local_bytes(self, run, which):
+        run.return_value = Mock(returncode=0, stdout=b"DKIM-Signature: d=example.com; s=mail; b=secret\r\n\r\n")
+        raw = read_clipboard_header_text()
+        self.assertIn(b"DKIM-Signature", raw)
+        run.assert_called_once()
+        self.assertEqual(run.call_args.args[0], ["termux-clipboard-get"])
+
+    @patch("mega_checker.dkim.shutil.which", return_value=None)
+    def test_clipboard_reader_gives_termux_api_guidance(self, which):
+        with self.assertRaises(FileNotFoundError) as ctx:
+            read_clipboard_header_text()
+        self.assertIn("--headers-file", str(ctx.exception))
+
+    @patch("mega_checker.dkim.shutil.which", return_value="termux-clipboard-get")
+    @patch("mega_checker.dkim.subprocess.run")
+    def test_clipboard_reader_rejects_empty_clipboard(self, run, which):
+        run.return_value = Mock(returncode=0, stdout=b"  \n")
+        with self.assertRaises(ValueError):
+            read_clipboard_header_text()
+
+
+    def test_common_selector_absence_is_labelled_heuristic(self):
+        inspector = Mock()
+        resolver = Mock(); resolver.nameservers = ["1.1.1.1"]
+        inspector._create_resolver.return_value = (resolver, "test_resolver")
+        inspector._resolve_txt.return_value = ([], "nxdomain")
+        result = lookup_dkim_signatures(inspector, [{
+            "domain": "example.com", "selector": "selector1", "source": "common-selector-heuristic"
+        }])
+        self.assertEqual(result["dkim_status"], "not_found_in_tested_common_selectors")
 
 
 if __name__ == "__main__":

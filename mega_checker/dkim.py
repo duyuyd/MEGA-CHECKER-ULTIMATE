@@ -7,6 +7,8 @@ The selector is carried by the DKIM-Signature header's s= tag; the signing
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -90,6 +92,35 @@ def read_header_file(path: str | Path) -> bytes:
     return file_path.read_bytes()
 
 
+
+def read_clipboard_header_text() -> bytes:
+    """Read copied mail headers through the optional Termux:API command.
+
+    Clipboard contents remain local. The command output is size-limited before
+    parsing and is never printed or transmitted by this helper.
+    """
+    command = shutil.which("termux-clipboard-get")
+    if not command:
+        raise FileNotFoundError(
+            "Không tìm thấy termux-clipboard-get. Nếu đã cài Termux:API, "
+            "hãy kiểm tra app Termux:API; hoặc dùng --headers-file với tệp .eml."
+        )
+    try:
+        completed = subprocess.run(
+            [command], capture_output=True, timeout=3.0, check=False
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("Đọc clipboard quá thời gian 3 giây") from exc
+    if completed.returncode != 0:
+        raise OSError("Termux:API không đọc được clipboard (mã thoát khác 0)")
+    raw = completed.stdout or b""
+    if len(raw) > _MAX_HEADER_FILE:
+        raise ValueError("Nội dung clipboard vượt giới hạn 1 MiB")
+    if not raw.strip():
+        raise ValueError("Clipboard đang trống; hãy sao chép header email trước")
+    return raw
+
+
 def _dkim_key_record_state(record: str) -> str | None:
     """Return present/revoked only for a DKIM key TXT record with a p= tag."""
     tags = _parse_tag_list(record)
@@ -147,7 +178,10 @@ def lookup_dkim_signatures(inspector: Any, signatures: Iterable[dict[str, str]])
     elif any(item["status"] == "revoked" for item in results):
         overall = "revoked"
     elif results and all(item["status"] == "not_found" for item in results):
-        overall = "not_found_for_supplied_selectors"
+        if all(item.get("source") == "common-selector-heuristic" for item in results):
+            overall = "not_found_in_tested_common_selectors"
+        else:
+            overall = "not_found_for_supplied_selectors"
     elif results and all(item["status"] == "invalid_record" for item in results):
         overall = "invalid_record"
     else:

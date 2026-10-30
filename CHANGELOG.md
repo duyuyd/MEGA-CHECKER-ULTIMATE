@@ -43,3 +43,10 @@
 - Added selector validation and targeted TXT lookup at `selector._domainkey.signing-domain`.
 - DKIM key validation requires `p=` and accepts only DKIM1 (or omitted version); distinguishes active, revoked, missing, invalid, and unknown results.
 - Common selector probing remains heuristic and never proves DKIM is absent for the whole domain.
+
+## 9.0.5 — DKIM mobile workflow
+
+- Added optional `dkim --clipboard` intake via `termux-clipboard-get`; clipboard data stays local and is size-limited to 1 MiB.
+- Added `dkim --domain DOMAIN --probe-common` as an explicitly heuristic selector probe. A negative result is labelled `not_found_in_tested_common_selectors`, not a domain-wide DKIM absence.
+- Replaced the confusing missing-selector parser error with Vietnamese examples and a clear explanation of how to obtain `d=`/`s=`.
+- Retained local `.eml`/header-file parsing as the preferred, more accurate workflow.
