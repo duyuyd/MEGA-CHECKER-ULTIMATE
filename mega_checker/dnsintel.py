@@ -209,11 +209,19 @@ class DomainInspector:
         self._cache[domain] = (now, dict(data))
         return data
 
-    def _resolve_txt(self, resolver: Any, name: str) -> tuple[list[str], str]:
+    def _resolve_txt(
+        self, resolver: Any, name: str, timeout: float | None = None
+    ) -> tuple[list[str], str]:
         try:
-            # TXT/DKIM checks are secondary; keep each lookup bounded so a
-            # domain without these records cannot stall a batch for minutes.
-            answers = resolver.resolve(name, "TXT", lifetime=min(0.9, self.timeout))
+            # General diagnostics use a short lookup. Full DKIM verification may
+            # pass a larger remaining timeout so the crypto check is not cut off
+            # by an unrelated sub-second DNS cap.
+            lifetime = (
+                min(0.9, self.timeout)
+                if timeout is None
+                else max(0.5, min(float(timeout), self.timeout, 15.0))
+            )
+            answers = resolver.resolve(name, "TXT", lifetime=lifetime)
             out = []
             for answer in answers:
                 chunks = getattr(answer, "strings", None)

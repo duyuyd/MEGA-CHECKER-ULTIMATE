@@ -1,3 +1,11 @@
+# CHANGELOG
+
+## 9.1.1 — Termux pip bootstrap hotfix
+- Fixed install/release scripts when `python -m pip` is absent on Termux.
+- Scripts now install the official `python-pip` package via `pkg` only when needed, then verify that the active Python interpreter can import pip.
+- Added shell regression tests for pip-present and pip-missing paths.
+- No database, configuration, results, DNS, or DKIM behavior changes in this hotfix.
+
 # Changelog
 
 ## 9.0.0
@@ -58,3 +66,12 @@
 - Generic selector probing remains unchanged for other domains; Gmail-specific candidates are only queried for `gmail.com`.
 - Renamed the negative heuristic result to `not_found_in_tested_selector_hints` to make its scope explicit; it does not prove domain-wide DKIM absence.
 - Added tests for provider scoping and heuristic negative semantics.
+
+## 9.1.0 — DKIM cryptographic verification
+
+- Added optional `dkimpy` RFC 6376 verification for complete RFC 5322 `.eml` files: body hash, canonicalized signed headers, public key parsing and cryptographic signature.
+- Added a custom DNS callback that reuses the project's Android/Termux resolver and Cloudflare DoH fallback; the raw email is never sent to DNS or uploaded.
+- Added distinct `pass`, `fail`, `perm_error`, `temp_error`, `revoked`, `unsupported_algorithm_backend`, `no_signature`, and invalid-header outcomes.
+- Added Termux installer for the pinned dkimpy 1.1.8 package and optional Ed25519/PyNaCl backend.
+- Added a synthetic RSA test keypair and CI integration tests: signed message passes; tampered body and signed header fail.
+- Documented dkimpy's RFC 8616 internationalized-email limitation and the fact that DKIM pass is not a malware or human-identity verdict.

@@ -9,7 +9,9 @@ from pathlib import Path
 from . import APP_NAME, __version__
 from .config import BASE_DIR, load_config, setup_logging
 from .dnsintel import DomainInspector, DKIM_SELECTORS, DKIM_PROVIDER_SELECTORS, dkim_selectors_for_domain
-from .dkim import parse_dkim_signature_headers, read_header_file, read_clipboard_header_text, lookup_dkim_signatures, normalize_selector
+from .dkim import (parse_dkim_signature_headers, read_header_file, read_clipboard_header_text,
+                   read_email_message_file, verify_dkim_message, lookup_dkim_signatures,
+                   normalize_selector)
 from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
 from .pipeline import check_one, read_emails, run_batch
@@ -52,6 +54,7 @@ def _make_parser() -> argparse.ArgumentParser:
     dkim_source.add_argument("--domain", help="Signing domain từ thẻ d= trong DKIM-Signature")
     dkim.add_argument("--selector", action="append", default=[], help="Selector từ thẻ s=; có thể lặp lại")
     dkim.add_argument("--probe-common", action="store_true", help="Thử một nhóm selector phổ biến; chỉ là heuristic, không toàn diện")
+    dkim.add_argument("--verify", action="store_true", help="Xác minh chữ ký DKIM mật mã trên toàn bộ tệp .eml (cần dkimpy)")
     one = sub.add_parser("single", help="Kiểm tra một email/domain")
     one.add_argument("email")
 
@@ -216,11 +219,21 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if not any((args.headers_file, args.clipboard, args.domain)):
                 print("DKIM: chọn một nguồn đầu vào.")
-                print("  Tệp .eml:       python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml")
+                print("  Tra DNS:        python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml")
+                print("  Xác minh thật:  python mega_checker.py dkim --verify --headers-file ~/storage/downloads/original.eml")
                 print("  Clipboard:      python mega_checker.py dkim --clipboard")
                 print("  Dò gợi ý:       python mega_checker.py dkim --domain gmail.com --probe-common")
                 print("  Selector biết:  python mega_checker.py dkim --domain example.com --selector selector1")
                 return 2
+
+            if args.verify:
+                if not args.headers_file or args.clipboard or args.domain or args.selector or args.probe_common:
+                    print("--verify yêu cầu duy nhất --headers-file trỏ tới tệp .eml nguyên bản.", file=sys.stderr)
+                    return 2
+                raw_message = read_email_message_file(args.headers_file)
+                result = verify_dkim_message(raw_message, DomainInspector(config["dns_timeout_seconds"]))
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 0 if result.get("overall_status") == "pass" else 1
 
             if args.headers_file or args.clipboard:
                 if args.selector or args.probe_common:
@@ -274,6 +287,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if result.get("dkim_status") in {"present", "revoked"} else 1
         except (OSError, ValueError) as exc:
             print(f"DKIM input error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+        except RuntimeError as exc:
+            print(f"DKIM verifier error: {exc}", file=sys.stderr)
             return 2
 
     if args.command == "password-audit":

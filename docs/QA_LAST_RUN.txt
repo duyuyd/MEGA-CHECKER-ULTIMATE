@@ -1,11 +1,20 @@
-MEGA CHECKER ULTIMATE 9.0.6 QA
+MEGA CHECKER ULTIMATE 9.1.0 — local build QA
+Date: 2026-10-30
 
 Python compileall: PASS
-Self-test: 12/12 PASS
-Unit tests: 47/47 PASS
-Unit tests with python -S: 47/47 PASS
-Runtime offline smoke: 8/8 PASS
-Checksum manifest: 221/221 PASS
-ZIP integrity: PASS
+Built-in self-test: 12/12 PASS
+Unit suite: 63 tests, 60 PASS, 3 SKIPPED (optional dkimpy not installed in build container)
+Python -S suite: 63 tests, 60 PASS, 3 SKIPPED (expected; -S disables site packages)
+Offline runtime smoke: 8/8 PASS
+CLI --verify argument parse: PASS
+CLI missing .eml error handling: PASS (exit 2, concise message)
 
-Network note: the Gmail selector hints are based on publicly available DKIM headers from Gmail-signed messages through September 2026 and historical revocation observations. Live selector DNS validation still has to be performed by the resolver on the target Android device. This is a DNS key lookup, not full cryptographic verification of an email signature.
+Cryptographic integration tests:
+- Added tests/test_dkimpy_integration.py with a synthetic RSA keypair.
+- Covers valid signed message => PASS, changed body => FAIL, changed signed header => FAIL.
+- Not executed in this build container because dkimpy is not installed and package network access is unavailable.
+- GitHub Actions installs dkimpy==1.1.8 and executes those tests under Python 3.13 and 3.14.
+
+Important: this is not a claim that a real Gmail message was cryptographically verified.
+The Gmail connector available in this session does not return raw RFC822 headers.
+A complete original .eml file is required for real-message verification.

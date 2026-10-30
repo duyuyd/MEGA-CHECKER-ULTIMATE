@@ -1,0 +1,6 @@
+# Optional full DKIM cryptographic verification (RFC 6376).
+# RSA-SHA256 is supported by the base package.
+dkimpy==1.1.8
+
+# Optional Ed25519 backend (requires PyNaCl):
+# python -m pip install 'dkimpy[ed25519]==1.1.8'

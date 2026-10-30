@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 9.0.6
+# MEGA CHECKER ULTIMATE 9.1.0
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -11,12 +11,13 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Kiểm tra DNS: MX, A/AAAA fallback, SPF, DMARC và một nhóm selector DKIM thông dụng; đã kèm dnspython 2.8.0 để dùng offline, không buộc pip tải thư viện.
 - Phân biệt `no_mx_record`, `null_mx`, `nxdomain`, `timeout`, `dns_error` và `dependency_missing`; không biến timeout thành “email không tồn tại”.
 - Tra DKIM selector từ header thư thật (`d=`/`s=`) hoặc selector do người chạy cung cấp; phân biệt khóa hoạt động, khóa bị thu hồi, không có bản ghi và chưa đủ dữ liệu.
+- Xác minh DKIM thật theo RFC 6376 bằng `dkimpy` tùy chọn: kiểm body hash, header đã ký và chữ ký RSA; hỗ trợ Ed25519 khi cài thêm backend PyNaCl.
 - Quét danh sách song song bằng thread pool, giới hạn worker.
 - SQLite WAL, lưu từng kết quả, job ID và khả năng tiếp tục job bằng `--resume`.
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux; 9.0.6 bổ sung selector Gmail được quan sát trong header công khai và phân biệt selector gợi ý với selector lấy từ email thật.
+- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux; 9.0.6 bổ sung selector Gmail được quan sát trong header công khai; 9.1.0 thêm xác minh DKIM mật mã bằng toàn bộ email `.eml` nguyên bản; 9.1.1 sửa tự cài gói `python-pip` riêng của Termux khi thiếu pip.
 
 ## Giới hạn cần hiểu đúng
 
@@ -41,7 +42,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.6_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.1.0_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
@@ -167,3 +168,32 @@ bash scripts/publish_github_termux.sh
 Lần đầu, GitHub CLI sẽ yêu cầu đăng nhập/xác nhận trên trình duyệt. Sau khi bạn xác nhận, script tự tạo `MEGA-CHECKER-ULTIMATE`, commit và push. Nhấn Enter để giữ Private; chỉ gõ `PUBLIC` khi thật sự muốn công khai mã nguồn. Không nhập hoặc lưu API key trong source.
 
 Sau khi push, GitHub Actions trong `.github/workflows/tests.yml` tự chạy compile check, self-test và unit tests.
+
+## Xác minh DKIM mật mã thật (9.1.0)
+
+Bản 9.1.0 bổ sung bộ xác minh RFC 6376 dựa trên `dkimpy`. Bộ này kiểm tra body hash, các header được ký và chữ ký khóa công khai; không chỉ dò TXT DNS.
+
+Cài bộ xác minh tùy chọn:
+
+```bash
+bash scripts/install_dkim_termux.sh
+# Tuỳ chọn thêm backend Ed25519:
+bash scripts/install_dkim_termux.sh --ed25519
+```
+
+Chạy trên email `.eml` nguyên bản:
+
+```bash
+python mega_checker.py dkim --verify --headers-file ~/storage/downloads/original.eml
+```
+
+Phải dùng tệp `.eml` nguyên bản được tải từ ứng dụng email. Không dựng lại email từ ảnh chụp, nội dung copy hoặc HTML vì có thể làm thay đổi byte được ký. Toàn bộ thư được xử lý trên máy; chỉ truy vấn DNS `selector._domainkey.domain` đi ra mạng. Cần backend Ed25519 riêng nếu thư dùng `ed25519-sha256`.
+
+Giới hạn đã biết: dkimpy chưa hỗ trợ đầy đủ email quốc tế hóa theo RFC 8616. `pass` chỉ xác nhận chữ ký DKIM tương ứng, không kết luận thư an toàn hay người gửi là người thật. Xem `docs/QA_DKIM_9.1.0.md` để biết các trạng thái và giới hạn.
+
+
+### Termux: khi báo `No module named pip`
+
+Termux phân phối pip thành gói riêng. Bản phát hành 9.1.1 tự cài gói này khi cần;
+nếu muốn cài trước bằng tay, chạy `pkg update -y && pkg install -y python-pip`.
+Không dùng `get-pip.py` hoặc nâng cấp pip bằng PyPI trong Termux.
