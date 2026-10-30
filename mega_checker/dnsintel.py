@@ -84,10 +84,26 @@ class DomainInspector:
         }
         try:
             answers = resolver.resolve(domain, "MX", lifetime=self.timeout)
-            hosts = sorted({str(item.exchange).rstrip(".").lower() for item in answers
-                            if int(getattr(item, "preference", 0)) >= 0})
+            null_mx = [
+                item for item in answers
+                if str(item.exchange).strip() == "."
+            ]
+            hosts = sorted({
+                str(item.exchange).rstrip(".").lower()
+                for item in answers
+                if str(item.exchange).strip() != "."
+                and int(getattr(item, "preference", 0)) >= 0
+            })
             data["mx_hosts"] = hosts
-            data["mx_status"] = "found" if hosts else "no_mx_record"
+            if null_mx:
+                # RFC 7505 Null MX must be the sole MX record with preference 0.
+                valid_null_mx = (
+                    len(answers) == 1
+                    and int(getattr(null_mx[0], "preference", -1)) == 0
+                )
+                data["mx_status"] = "null_mx" if valid_null_mx else "invalid_mx_configuration"
+            else:
+                data["mx_status"] = "found" if hosts else "no_mx_record"
         except dns.resolver.NoAnswer:
             data["mx_status"] = "no_mx_record"
         except dns.resolver.NXDOMAIN:
@@ -143,7 +159,7 @@ class DomainInspector:
 
         if data["mx_status"] == "nxdomain":
             data["dns_status"] = "nxdomain"
-        elif data["mx_status"] in {"timeout", "dns_error"} or \
+        elif data["mx_status"] in {"timeout", "dns_error", "invalid_mx_configuration"} or \
              data["spf_status"] == "unknown" or data["dmarc_status"] == "unknown" or \
              data["dkim_status"] == "unknown":
             data["dns_status"] = "partial"

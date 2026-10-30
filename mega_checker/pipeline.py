@@ -42,6 +42,10 @@ def check_one(email: str, inspector: DomainInspector, disposable_domains: set[st
             result.warnings.append("Không có MX; domain có bản ghi A/AAAA. Điều này không xác nhận hộp thư nhận thư.")
         elif dns["mx_status"] == "no_mx_record":
             result.warnings.append("Không tìm thấy MX; cần xem xét thêm trạng thái DNS.")
+        elif dns["mx_status"] == "null_mx":
+            result.warnings.append("Domain công bố Null MX: domain chủ động tuyên bố không nhận email.")
+        elif dns["mx_status"] == "invalid_mx_configuration":
+            result.warnings.append("Bản ghi MX có cấu hình Null MX không hợp lệ hoặc bị trộn với MX khác.")
         elif dns["mx_status"] == "timeout":
             result.warnings.append("Truy vấn MX hết thời gian; kết quả DNS chưa xác định.")
     result.checked_at = datetime.now(timezone.utc).isoformat(timespec="seconds")

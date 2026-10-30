@@ -40,6 +40,21 @@ class ValidationTests(unittest.TestCase):
         upper = validate_email("User@example.com")
         lower = validate_email("user@example.com")
         self.assertNotEqual(upper.normalized_email, lower.normalized_email)
+    def test_invalid_domains_do_not_collapse_to_same_storage_key(self):
+        first = validate_email("same@bad..example")
+        second = validate_email("same@bad_domain.example")
+        self.assertEqual(first.syntax_status, "invalid")
+        self.assertEqual(second.syntax_status, "invalid")
+        self.assertNotEqual(first.normalized_email, second.normalized_email)
+
+    def test_total_address_limit_is_checked_after_idna(self):
+        local = "a" * 64
+        domain = ".".join(["ü" * 46] * 4)
+        email = f"{local}@{domain}"
+        self.assertLessEqual(len(email), 254)  # Unicode string length is not SMTP wire length.
+        result = validate_email(email)
+        self.assertEqual(result.syntax_status, "invalid")
+        self.assertTrue(any("254 byte" in error for error in result.errors))
     def test_mask(self):
         self.assertEqual(mask_email("someone@example.com"), "s*****e@example.com")
         self.assertEqual(mask_email("a@example.com"), "*@example.com")

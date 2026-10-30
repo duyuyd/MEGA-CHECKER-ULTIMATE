@@ -46,11 +46,16 @@ def normalize_domain(domain: str) -> str:
 def normalize_email(email: str) -> str:
     raw = (email or "").strip()
     if raw.count("@") != 1:
-        return raw.lower()
+        # Invalid input is still used as a database key; preserve it so distinct
+        # malformed strings do not collapse into the same normalized key.
+        return raw
     local, domain = raw.rsplit("@", 1)
+    normalized_domain = normalize_domain(domain)
+    if not normalized_domain:
+        return raw
     # Domain names are case-insensitive; preserve the local part because SMTP
     # technically permits case-sensitive mailbox names.
-    return f"{local}@{normalize_domain(domain)}"
+    return f"{local}@{normalized_domain}"
 
 def mask_email(email: str) -> str:
     if "@" not in email:
@@ -90,8 +95,8 @@ def validate_email(email: str, disposable_domains: set[str] | None = None) -> Em
         email=raw, normalized_email=normalized, masked_email=mask_email(raw),
         syntax_status="invalid"
     )
-    if not raw or len(raw) > 254 or raw.count("@") != 1:
-        result.errors.append("Địa chỉ trống, quá dài hoặc không có đúng một ký tự @.")
+    if not raw or raw.count("@") != 1:
+        result.errors.append("Địa chỉ trống hoặc không có đúng một ký tự @.")
         return result
 
     local, domain_raw = raw.rsplit("@", 1)
@@ -110,6 +115,11 @@ def validate_email(email: str, disposable_domains: set[str] | None = None) -> Em
         return result
     if not domain or len(domain) > 253 or "." not in domain:
         result.errors.append("Tên miền không hợp lệ hoặc thiếu dấu chấm.")
+        return result
+    # Enforce the address limit on the ASCII form sent over SMTP, after IDNA
+    # conversion. Unicode input can expand when represented as Punycode.
+    if len(local.encode("ascii", errors="ignore")) + 1 + len(domain.encode("ascii")) > 254:
+        result.errors.append("Địa chỉ vượt giới hạn 254 byte sau khi chuẩn hóa IDNA.")
         return result
     if local.startswith(".") or local.endswith(".") or ".." in local:
         result.errors.append("Phần tên trước @ có dấu chấm ở vị trí không hợp lệ.")

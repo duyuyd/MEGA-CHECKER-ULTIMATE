@@ -1,11 +1,13 @@
-MEGA CHECKER ULTIMATE 9.0.0 — SOURCE FILE MANIFEST
+MEGA CHECKER ULTIMATE 9.0.1 — SOURCE FILE MANIFEST
+File sizes are byte counts; this manifest does not list itself or checksums.sha256.
 
 .github/workflows/tests.yml                                       590 bytes
 .gitignore                                                        331 bytes
-CHANGELOG.md                                                      698 bytes
+CHANGELOG.md                                                    1,194 bytes
 LICENSE                                                           694 bytes
 LICENSE-MPL-2.0                                                16,726 bytes
-README_VI.md                                                    6,863 bytes
+README.md                                                       7,000 bytes
+README_VI.md                                                    7,000 bytes
 THIRD_PARTY_NOTICES.md                                            574 bytes
 config.json                                                       241 bytes
 data/README_PSL.txt                                               499 bytes
@@ -18,28 +20,30 @@ docs/QA.md                                                        691 bytes
 docs/QA_LAST_RUN.txt                                            3,250 bytes
 docs/SECURITY.md                                                  747 bytes
 docs/TERMUX.md                                                    710 bytes
+logs/mega_checker.log                                               0 bytes
 mega_checker/__init__.py                                          322 bytes
 mega_checker/__main__.py                                           47 bytes
 mega_checker/cli.py                                            12,489 bytes
 mega_checker/config.py                                          2,653 bytes
-mega_checker/dnsintel.py                                        6,239 bytes
+mega_checker/dnsintel.py                                        6,871 bytes
 mega_checker/exporters.py                                       1,264 bytes
-mega_checker/hibp.py                                            3,834 bytes
+mega_checker/hibp.py                                            3,838 bytes
 mega_checker/models.py                                          1,402 bytes
-mega_checker/pipeline.py                                        4,065 bytes
+mega_checker/pipeline.py                                        4,417 bytes
 mega_checker/reputation.py                                        951 bytes
 mega_checker/storage.py                                         8,393 bytes
 mega_checker/suffixes.py                                        3,294 bytes
-mega_checker/validation.py                                      6,409 bytes
+mega_checker/validation.py                                      6,984 bytes
 mega_checker.py                                                   167 bytes
 requirements.txt                                                  275 bytes
 scripts/install_termux.sh                                         207 bytes
 scripts/publish_github_termux.sh                                4,077 bytes
 tests/test_config.py                                            1,181 bytes
+tests/test_dnsintel.py                                          1,302 bytes
 tests/test_hibp.py                                              2,069 bytes
 tests/test_pipeline.py                                          2,635 bytes
 tests/test_storage.py                                           1,329 bytes
-tests/test_validation.py                                        2,349 bytes
+tests/test_validation.py                                        3,161 bytes
 vendor/CERTIFI_LICENSE.txt                                        989 bytes
 vendor/CERTIFI_VERSION.txt                                        230 bytes
 vendor/DNSPYTHON_LICENSE.txt                                    1,526 bytes

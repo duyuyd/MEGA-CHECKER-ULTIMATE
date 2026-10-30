@@ -1,21 +1,21 @@
-# MEGA CHECKER ULTIMATE 9.0
+# MEGA CHECKER ULTIMATE 9.0.1
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
 ## Có gì trong bản 9
 
-- Kiểm tra cấu trúc email, IDNA/Punycode (UTS #46), độ dài, ký tự và lỗi gõ tên miền phổ biến; chuẩn hóa domain nhưng giữ nguyên local-part.
+- Kiểm tra cấu trúc email, IDNA/Punycode (UTS #46), giới hạn 254 byte sau chuẩn hóa, ký tự và lỗi gõ tên miền phổ biến; chuẩn hóa domain nhưng giữ nguyên local-part.
 - Nhận diện domain email tạm từ danh sách cục bộ có thể cập nhật.
 - Nhận diện một số nhà cung cấp email phổ biến.
 - Tra cứu public suffix và registrable domain bằng snapshot Public Suffix List (có file giấy phép và hướng dẫn cập nhật).
 - Kiểm tra DNS: MX, A/AAAA fallback, SPF, DMARC và một nhóm selector DKIM thông dụng; đã kèm dnspython 2.8.0 để dùng offline, không buộc pip tải thư viện.
-- Phân biệt `no_mx_record`, `nxdomain`, `timeout`, `dns_error` và `dependency_missing`; không biến timeout thành “email không tồn tại”.
+- Phân biệt `no_mx_record`, `null_mx`, `nxdomain`, `timeout`, `dns_error` và `dependency_missing`; không biến timeout thành “email không tồn tại”.
 - Quét danh sách song song bằng thread pool, giới hạn worker.
 - SQLite WAL, lưu từng kết quả, job ID và khả năng tiếp tục job bằng `--resume`.
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến.
+- Bộ self-test ngoại tuyến. Bản 9.0.1 bổ sung kiểm thử Null MX và khóa lưu trữ của email sai domain.
 
 ## Giới hạn cần hiểu đúng
 
@@ -40,7 +40,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.1_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
