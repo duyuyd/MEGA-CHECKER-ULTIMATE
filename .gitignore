@@ -1,0 +1,24 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local databases, runtime state and backups
+*.db
+*.db-wal
+*.db-shm
+backups/
+logs/*.log
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Local exports and temporary files
+mega_results*.csv
+mega_results*.json
+ketqua*.csv
+ketqua*.json
+*.tmp
+.DS_Store

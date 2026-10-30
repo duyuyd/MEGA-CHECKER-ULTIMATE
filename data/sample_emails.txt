@@ -1,0 +1,6 @@
+# Dữ liệu giả lập; example.com / example.net / example.org là domain minh họa.
+person@example.com
+typo.user@gmial.com
+contact@example.net
+bad-address-without-at
+temp.user@mailinator.com

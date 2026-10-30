@@ -1,0 +1,4 @@
+Bundled dependency: certifi 2026.5.20
+Source: https://github.com/certifi/python-certifi
+License: Mozilla Public License 2.0; see CERTIFI_LICENSE.txt.
+Provides the CA certificate bundle used by optional HTTPS intelligence lookups.

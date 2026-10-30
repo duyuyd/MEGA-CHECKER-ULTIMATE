@@ -1,0 +1,5 @@
+# No pip packages are required. Pure-Python dependencies are bundled:
+# - dnspython 2.8.0 in ./vendor/dns
+# - idna 3.17 in ./vendor/idna
+# - certifi 2026.5.20 / CA certificates in ./vendor/certifi
+# This keeps core checks and optional HTTPS lookups self-contained on Termux.

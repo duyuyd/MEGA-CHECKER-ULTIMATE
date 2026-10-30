@@ -1,0 +1,26 @@
+name: Mega Checker QA
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile all modules
+        run: python -m compileall -q mega_checker mega_checker.py
+      - name: Built-in self-test
+        run: python mega_checker.py self-test
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v

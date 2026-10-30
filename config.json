@@ -1,0 +1,9 @@
+{
+  "workers": 5,
+  "dns_timeout_seconds": 4.0,
+  "database": "mega_database_v9.db",
+  "backup_directory": "backups",
+  "disposable_domains_file": "data/disposable_domains.txt",
+  "log_file": "logs/mega_checker.log",
+  "log_level": "INFO"
+}

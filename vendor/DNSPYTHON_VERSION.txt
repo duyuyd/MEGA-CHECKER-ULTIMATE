@@ -1,0 +1,4 @@
+Bundled dependency: dnspython 2.8.0
+Source: https://www.dnspython.org/
+License: ISC; full license text is in DNSPYTHON_LICENSE.txt.
+The bundled library is pure Python; compiled extension files are not included.

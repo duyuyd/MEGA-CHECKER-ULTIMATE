@@ -1,0 +1,4 @@
+Bundled dependency: idna 3.17
+Source: https://github.com/kjd/idna
+License: BSD 3-Clause; full license text is in IDNA_LICENSE.md.
+Used for UTS #46 / IDNA domain normalization.

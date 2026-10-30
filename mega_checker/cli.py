@@ -1,0 +1,288 @@
+from __future__ import annotations
+import argparse
+import getpass
+import json
+import os
+import sys
+import uuid
+from pathlib import Path
+from . import APP_NAME, __version__
+from .config import BASE_DIR, load_config, setup_logging
+from .dnsintel import DomainInspector
+from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
+from .pipeline import check_one, read_emails, run_batch
+from .storage import Store
+from .validation import load_disposable_domains
+from .exporters import export_html
+
+
+def _print_result(result) -> None:
+    d = result.to_dict()
+    print(f"\n{d['masked_email']}  [{d['syntax_status'].upper()}]")
+    print(f"Domain: {d['domain'] or '(không hợp lệ)'} | Loại: {d['domain_type']}")
+    if d["registrable_domain"]:
+        print(f"Public suffix: {d['public_suffix']} | Registrable domain: {d['registrable_domain']}")
+    if d["typo_suggestion"]:
+        print(f"Gợi ý: {d['typo_suggestion']}")
+    print(f"Email tạm (danh sách cục bộ): {'CÓ' if d['disposable'] else 'không thấy'}")
+    print(f"MX: {d['mx_status']} {', '.join(d['mx_hosts'])}")
+    print(f"SPF: {d['spf_status']} | DMARC: {d['dmarc_status']} | DKIM: {d['dkim_status']}")
+    print(f"HIBP: {d['hibp_status']}")
+    for warning in d["warnings"]:
+        print(f"CẢNH BÁO: {warning}")
+    for error in d["errors"]:
+        print(f"LỖI: {error}")
+    print(f"Thời gian: {d['duration_ms']} ms")
+
+
+def _make_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="mega-checker", description=APP_NAME)
+    parser.add_argument("--config", default=str(BASE_DIR / "config.json"), help="Tệp cấu hình JSON")
+    parser.add_argument("--db", default=None, help="Ghi đè đường dẫn SQLite database")
+    sub = parser.add_subparsers(dest="command")
+
+    sub.add_parser("self-test", help="Chạy bộ tự kiểm tra ngoại tuyến")
+    one = sub.add_parser("single", help="Kiểm tra một email/domain")
+    one.add_argument("email")
+
+    batch = sub.add_parser("scan", help="Quét danh sách email từ file")
+    batch.add_argument("-i", "--input", required=True)
+    batch.add_argument("-w", "--workers", type=int, default=None)
+    batch.add_argument("--job-id", default="")
+    batch.add_argument("--resume", action="store_true")
+    batch.add_argument("--csv")
+    batch.add_argument("--json")
+    batch.add_argument("--html")
+    batch.add_argument("--hibp", action="store_true",
+                       help="Tra cứu HIBP; cần API key và quyền phù hợp")
+    batch.add_argument("--confirm-authorized", action="store_true")
+
+    exp = sub.add_parser("export", help="Xuất dữ liệu đã lưu")
+    exp.add_argument("--csv")
+    exp.add_argument("--json")
+    exp.add_argument("--html")
+    exp.add_argument("--limit", type=int, default=100000)
+
+    sub.add_parser("stats", help="Thống kê database")
+    sub.add_parser("backup", help="Sao lưu database")
+    sub.add_parser("password-audit", help="Kiểm tra mật khẩu bằng HIBP k-anonymity")
+    sub.add_parser("config-check", help="Kiểm tra và hiển thị cấu hình đang dùng")
+    sub.add_parser("menu", help="Mở menu tương tác")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    return parser
+
+
+def _self_test() -> int:
+    from .validation import validate_email, mask_email, normalize_domain
+    tests = [
+        ("good", validate_email("person@example.com").syntax_status == "valid"),
+        ("missing_at", validate_email("person.example.com").syntax_status == "invalid"),
+        ("double_at", validate_email("a@@example.com").syntax_status == "invalid"),
+        ("empty_local", validate_email("@example.com").syntax_status == "invalid"),
+        ("double_dot", validate_email("a..b@example.com").syntax_status == "invalid"),
+        ("bad_domain_label", validate_email("a@-bad.example").syntax_status == "invalid"),
+        ("typo", validate_email("a@gmial.com").typo_suggestion == "a@gmail.com"),
+        ("mask", mask_email("someone@example.com") == "s*****e@example.com"),
+        ("idna", normalize_domain("münich.example") == "xn--mnich-kva.example"),
+    ]
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        store = Store(Path(tmp) / "test.db")
+        sample = validate_email("person@example.com")
+        sample.checked_at = "2026-01-01T00:00:00+00:00"
+        store.save_result(sample)
+        tests.append(("sqlite_roundtrip", store.get_result("person@example.com").syntax_status == "valid"))
+        store.start_job("qa", "unit", ["one@example.com"])
+        tests.append(("job_pending", store.pending_for_job("qa") == ["one@example.com"]))
+        store.job_done("qa", "one@example.com")
+        tests.append(("job_resume", store.pending_for_job("qa") == []))
+        store.close()
+    passed = sum(ok for _, ok in tests)
+    for name, ok in tests:
+        print(f"[{'PASS' if ok else 'FAIL'}] {name}")
+    print(f"\nSELF-TEST: {passed}/{len(tests)}")
+    return 0 if passed == len(tests) else 1
+
+
+def _scan_hibp(results, authorised: bool) -> None:
+    if not authorised:
+        raise HIBPError("Thiếu --confirm-authorized. Chỉ tra cứu email bạn sở hữu hoặc được phép kiểm toán.")
+    if not os.environ.get("HIBP_API_KEY"):
+        raise HIBPError("Chưa đặt biến môi trường HIBP_API_KEY.")
+    for result in results:
+        if result.syntax_status != "valid":
+            continue
+        try:
+            data = check_breached_email(result.normalized_email)
+            result.hibp_status = data["status"]
+            result.hibp_breaches = data.get("breaches", [])
+        except HIBPError as exc:
+            result.hibp_status = "error"
+            result.errors.append(str(exc))
+
+
+def interactive_menu(config: dict) -> int:
+    db_file = Path(config["database"])
+    data_file = Path(config["disposable_domains_file"])
+    backup_dir = Path(config["backup_directory"])
+    print(f"\n{APP_NAME} v{__version__}")
+    print("1. Kiểm tra một email")
+    print("2. Quét danh sách email từ file")
+    print("3. Thống kê database")
+    print("4. Xuất CSV")
+    print("5. Sao lưu database")
+    print("0. Thoát")
+    choice = input("Chọn: ").strip()
+    if choice == "1":
+        result = check_one(input("Email: ").strip(), DomainInspector(config["dns_timeout_seconds"]),
+                           load_disposable_domains(data_file))
+        _print_result(result)
+        store = Store(db_file)
+        try:
+            store.save_result(result)
+        finally:
+            store.close()
+    elif choice == "2":
+        path = Path(input("Đường dẫn file: ").strip()).expanduser()
+        if not path.is_file():
+            print("Không tìm thấy file.")
+            return 2
+        store = Store(db_file)
+        try:
+            _, summary = run_batch(read_emails(path), store, config["workers"],
+                                   job_id=uuid.uuid4().hex[:10], disposable_file=data_file,
+                                   dns_timeout=config["dns_timeout_seconds"])
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        finally:
+            store.close()
+    elif choice == "3":
+        store = Store(db_file)
+        try:
+            print(json.dumps(store.stats(), ensure_ascii=False, indent=2))
+        finally:
+            store.close()
+    elif choice == "4":
+        store = Store(db_file)
+        try:
+            print(f"Đã xuất {store.export_csv(Path('mega_results.csv'))} dòng.")
+        finally:
+            store.close()
+    elif choice == "5":
+        store = Store(db_file)
+        try:
+            print(f"Backup: {store.backup(backup_dir)}")
+        finally:
+            store.close()
+    elif choice == "0":
+        return 0
+    else:
+        print("Lựa chọn không hợp lệ.")
+        return 2
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _make_parser()
+    args = parser.parse_args(argv)
+    try:
+        config = load_config(Path(args.config))
+    except ValueError as exc:
+        print(f"Cấu hình lỗi: {exc}", file=sys.stderr)
+        return 2
+    logger = setup_logging(config)
+    db_file = Path(args.db).expanduser() if args.db else Path(config["database"])
+    data_file = Path(config["disposable_domains_file"])
+
+    if not args.command:
+        return interactive_menu(config)
+    if args.command == "self-test":
+        return _self_test()
+    if args.command == "config-check":
+        safe = dict(config)
+        safe["hibp_api_key"] = "Đọc từ biến môi trường HIBP_API_KEY, không lưu trong config"
+        print(json.dumps(safe, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "password-audit":
+        password = getpass.getpass("Nhập mật khẩu (không lưu/không ghi log): ")
+        if not password:
+            print("Không có mật khẩu.")
+            return 2
+        try:
+            print(json.dumps(check_password_k_anonymity(password), ensure_ascii=False, indent=2))
+            return 0
+        except HIBPError as exc:
+            logger.warning("Password audit failed (%s)", type(exc).__name__)
+            print(f"Lỗi: {exc}", file=sys.stderr)
+            return 1
+
+    if args.command == "single":
+        result = check_one(args.email, DomainInspector(config["dns_timeout_seconds"]),
+                           load_disposable_domains(data_file))
+        _print_result(result)
+        store = Store(db_file)
+        try:
+            store.save_result(result)
+        finally:
+            store.close()
+        logger.info("Single email check completed (syntax=%s)", result.syntax_status)
+        return 0 if result.syntax_status == "valid" else 2
+
+    store = Store(db_file)
+    try:
+        if args.command == "scan":
+            source = Path(args.input).expanduser()
+            if not source.is_file():
+                parser.error(f"Không tìm thấy input: {source}")
+            emails = read_emails(source)
+            if not emails:
+                print("Không có email hợp lệ để xử lý.")
+                return 2
+            job_id = args.job_id or uuid.uuid4().hex[:12]
+            worker_count = args.workers if args.workers is not None else config["workers"]
+            results, summary = run_batch(emails, store, worker_count, job_id,
+                                         args.resume, data_file, config["dns_timeout_seconds"])
+            if args.hibp:
+                try:
+                    _scan_hibp(results, args.confirm_authorized)
+                    for result in results:
+                        store.save_result(result)
+                except HIBPError as exc:
+                    logger.warning("HIBP lookup stopped (%s)", type(exc).__name__)
+                    print(f"HIBP: {exc}", file=sys.stderr)
+            if args.csv:
+                store.export_csv(Path(args.csv).expanduser())
+            if args.json:
+                store.export_json(Path(args.json).expanduser())
+            if args.html:
+                export_html(store.list_results(), Path(args.html).expanduser())
+            logger.info("Batch completed: processed=%d errors=%d", summary["processed_now"], summary["errors"])
+            print(json.dumps({"job_id": job_id, **summary}, ensure_ascii=False, indent=2))
+            print(f"Đã lưu database: {db_file.resolve()}")
+            return 0
+        if args.command == "export":
+            if not any((args.csv, args.json, args.html)):
+                parser.error("Cần ít nhất một trong --csv, --json hoặc --html.")
+            if args.csv:
+                print(f"CSV: {store.export_csv(Path(args.csv).expanduser(), args.limit)} dòng")
+            if args.json:
+                print(f"JSON: {store.export_json(Path(args.json).expanduser(), args.limit)} dòng")
+            if args.html:
+                export_html(store.list_results(args.limit), Path(args.html).expanduser())
+                print(f"HTML: {args.html}")
+            return 0
+        if args.command == "stats":
+            print(json.dumps(store.stats(), ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "backup":
+            print(f"Đã sao lưu: {store.backup(Path(config['backup_directory']))}")
+            return 0
+        if args.command == "menu":
+            return interactive_menu(config)
+        parser.print_help()
+        return 0
+    finally:
+        store.close()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

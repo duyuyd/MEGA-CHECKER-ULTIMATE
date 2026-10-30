@@ -1,0 +1,62 @@
+MEGA CHECKER ULTIMATE 9.0.0 — FINAL QA RECORD
+Date: 2026-10-30
+Build environment: Linux container, Python 3.13
+Target: Android/Termux; physical Android device test not performed.
+
+SELF-TEST
+[PASS] good
+[PASS] missing_at
+[PASS] double_at
+[PASS] empty_local
+[PASS] double_dot
+[PASS] bad_domain_label
+[PASS] typo
+[PASS] mask
+[PASS] idna
+[PASS] sqlite_roundtrip
+[PASS] job_pending
+[PASS] job_resume
+
+SELF-TEST: 12/12
+
+AUTOMATED TEST SUITE
+test_defaults_created (test_config.ConfigTests.test_defaults_created) ... ok
+test_invalid_log_level (test_config.ConfigTests.test_invalid_log_level) ... ok
+test_values_are_bounded (test_config.ConfigTests.test_values_are_bounded) ... ok
+test_email_lookup_404_is_not_breached (test_hibp.HIBPTests.test_email_lookup_404_is_not_breached) ... ok
+test_email_lookup_empty_body_is_not_breached (test_hibp.HIBPTests.test_email_lookup_empty_body_is_not_breached) ... ok
+test_password_range_only_sends_prefix (test_hibp.HIBPTests.test_password_range_only_sends_prefix) ... ok
+test_offline_batch (test_pipeline.PipelineTests.test_offline_batch) ... ok
+test_read_deduplicates (test_pipeline.PipelineTests.test_read_deduplicates) ... ok
+test_resume_preserves_local_part_case (test_pipeline.PipelineTests.test_resume_preserves_local_part_case) ... ok
+test_roundtrip_stats_export_backup_and_resume (test_storage.StoreTests.test_roundtrip_stats_export_backup_and_resume) ... ok
+test_disposable (test_validation.ValidationTests.test_disposable) ... ok
+test_idna (test_validation.ValidationTests.test_idna) ... ok
+test_invalid_shapes (test_validation.ValidationTests.test_invalid_shapes) ... ok
+test_local_part_case_is_preserved (test_validation.ValidationTests.test_local_part_case_is_preserved) ... ok
+test_mask (test_validation.ValidationTests.test_mask) ... ok
+test_psl_wildcard_exception_rules (test_validation.ValidationTests.test_psl_wildcard_exception_rules) ... ok
+test_public_suffix_and_registrable_domain (test_validation.ValidationTests.test_public_suffix_and_registrable_domain) ... ok
+test_subdomain_disposable (test_validation.ValidationTests.test_subdomain_disposable) ... ok
+test_too_long_local (test_validation.ValidationTests.test_too_long_local) ... ok
+test_typo_hint_not_auto_corrected (test_validation.ValidationTests.test_typo_hint_not_auto_corrected) ... ok
+test_valid (test_validation.ValidationTests.test_valid) ... ok
+Ran 21 tests in 1.671s
+OK
+
+STATIC CHECKS
+- Python compileall: PASS
+- bash -n scripts/publish_github_termux.sh: PASS
+- Publisher private-file guard with empty runtime log: PASS
+- Publisher private-file guard with SQLite database present: PASS
+- ZIP integrity: checked after packaging
+
+NETWORK TESTS
+- No live HIBP lookup or external DNS result is claimed by this offline QA run.
+- External DNS network smoke tests are environment-dependent; timeout is not treated as proof that a mailbox does not exist.
+
+GITHUB PUBLISHING
+- The linked ChatGPT GitHub connection has read access but branch creation returned HTTP 403.
+- Termux publisher uses GitHub CLI's browser/device login and creates a separate PRIVATE repository by default.
+- It checks for accidental local database and .env files before staging source.
+- GitHub Actions workflow runs compileall, self-test and unittest after push.
