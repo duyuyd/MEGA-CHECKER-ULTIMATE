@@ -40,7 +40,7 @@ def check_breached_email(email: str, api_key: str | None = None, timeout: float 
     url = f"{HIBP_API}/breachedaccount/{urllib.parse.quote(email, safe='')}?{query}"
     request = urllib.request.Request(url, headers={
         "hibp-api-key": key,
-        "user-agent": "MegaCheckerUltimate/9.0.1 (authorised personal email audit)",
+        "user-agent": "MegaCheckerUltimate/9.0.2 (authorised personal email audit)",
         "accept": "application/json",
     })
     _throttle()
@@ -70,7 +70,7 @@ def check_password_k_anonymity(password: str, timeout: float = 12.0) -> dict:
     prefix, suffix = digest[:5], digest[5:]
     request = urllib.request.Request(
         PP_RANGE_API + prefix,
-        headers={"user-agent": "MegaCheckerUltimate/9.0.1", "Add-Padding": "true"}
+        headers={"user-agent": "MegaCheckerUltimate/9.0.2", "Add-Padding": "true"}
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout,

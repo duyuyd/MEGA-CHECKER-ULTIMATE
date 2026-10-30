@@ -1,69 +1,9 @@
-MEGA CHECKER ULTIMATE 9.0.1 — FINAL QA RECORD
-Date: 2026-10-30
-Build environment: Linux container, Python 3.13
-Target: Android/Termux; physical Android device test not performed for 9.0.1.
+MEGA CHECKER ULTIMATE 9.0.4 QA
 
-SELF-TEST
-[PASS] good
-[PASS] missing_at
-[PASS] double_at
-[PASS] empty_local
-[PASS] double_dot
-[PASS] bad_domain_label
-[PASS] typo
-[PASS] mask
-[PASS] idna
-[PASS] sqlite_roundtrip
-[PASS] job_pending
-[PASS] job_resume
-
-SELF-TEST: 12/12
-
-AUTOMATED TEST SUITE
-test_defaults_created ... ok
-test_invalid_log_level ... ok
-test_values_are_bounded ... ok
-test_null_mx_is_not_reported_as_mail_host ... ok
-test_null_mx_mixed_with_regular_mx_is_flagged ... ok
-test_email_lookup_404_is_not_breached ... ok
-test_email_lookup_empty_body_is_not_breached ... ok
-test_password_range_only_sends_prefix ... ok
-test_offline_batch ... ok
-test_read_deduplicates ... ok
-test_resume_preserves_local_part_case ... ok
-test_roundtrip_stats_export_backup_and_resume ... ok
-test_disposable ... ok
-test_idna ... ok
-test_invalid_domains_do_not_collapse_to_same_storage_key ... ok
-test_invalid_shapes ... ok
-test_local_part_case_is_preserved ... ok
-test_mask ... ok
-test_psl_wildcard_exception_rules ... ok
-test_public_suffix_and_registrable_domain ... ok
-test_subdomain_disposable ... ok
-test_too_long_local ... ok
-test_total_address_limit_is_checked_after_idna ... ok
-test_typo_hint_not_auto_corrected ... ok
-test_valid ... ok
-
-Ran 25 tests — OK
-
-STATIC CHECKS
-- Python compileall: PASS
-- Built-in self-test: PASS (12/12)
-- Unit tests: PASS (25/25)
-- Isolated Python mode (python -S): PASS; bundled idna/DNS/certifi packages are resolvable without site packages.
-- bash -n scripts/install_termux.sh: PASS
-- bash -n scripts/publish_github_termux.sh: PASS
-- checksums.sha256: regenerated after this release.
-- ZIP integrity: checked after packaging.
-
-NETWORK TESTS
-- No live HIBP lookup or external DNS result is claimed by this offline QA run.
-- DNS Null MX handling is verified using a mocked DNS resolver.
-- HIBP HTTP handling is verified using mocked responses.
-- External DNS network smoke tests are environment-dependent; timeout is not treated as proof that a mailbox does not exist.
-
-DEVICE TESTS
-- Earlier 9.0.0 run was reported by the user on Termux as SELF-TEST 12/12 and unittest 21/21.
-- This 9.0.1 patch has not yet been retested on the user's physical Android device.
+Environment: local Linux/Python 3.x build environment; no real account login flows used.
+Compile: PASS
+Built-in self-test: 12/12 PASS
+Unit tests: 41/41 PASS
+Unit tests under python -S: 41/41 PASS
+DKIM tests cover folded headers, multiple signatures, de-duplication, invalid selectors, DKIM key TXT validation, revoked keys, exact d._domainkey selector owner lookup, and absent-vs-timeout distinction.
+Live DKIM DNS lookup from the user's device remains to be confirmed with a locally saved DKIM-Signature header or a selector provided by the user.

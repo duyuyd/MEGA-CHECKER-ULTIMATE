@@ -9,6 +9,8 @@ from pathlib import Path
 from . import APP_NAME, __version__
 from .config import BASE_DIR, load_config, setup_logging
 from .dnsintel import DomainInspector
+from .dkim import parse_dkim_signature_headers, read_header_file, lookup_dkim_signatures, normalize_selector
+from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
 from .pipeline import check_one, read_emails, run_batch
 from .storage import Store
@@ -25,6 +27,7 @@ def _print_result(result) -> None:
     if d["typo_suggestion"]:
         print(f"Gợi ý: {d['typo_suggestion']}")
     print(f"Email tạm (danh sách cục bộ): {'CÓ' if d['disposable'] else 'không thấy'}")
+    print(f"DNS resolver: {d.get('dns_provider') or 'unknown'}")
     print(f"MX: {d['mx_status']} {', '.join(d['mx_hosts'])}")
     print(f"SPF: {d['spf_status']} | DMARC: {d['dmarc_status']} | DKIM: {d['dkim_status']}")
     print(f"HIBP: {d['hibp_status']}")
@@ -42,6 +45,11 @@ def _make_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("self-test", help="Chạy bộ tự kiểm tra ngoại tuyến")
+    dkim = sub.add_parser("dkim", help="Tra selector DKIM từ header email hoặc selector nhập tay")
+    dkim_source = dkim.add_mutually_exclusive_group(required=True)
+    dkim_source.add_argument("--headers-file", help="Tệp .eml hoặc tệp chỉ chứa header DKIM-Signature (xử lý cục bộ)")
+    dkim_source.add_argument("--domain", help="Signing domain từ thẻ d= trong DKIM-Signature")
+    dkim.add_argument("--selector", action="append", default=[], help="Selector từ thẻ s=; có thể lặp lại")
     one = sub.add_parser("single", help="Kiểm tra một email/domain")
     one.add_argument("email")
 
@@ -202,6 +210,32 @@ def main(argv: list[str] | None = None) -> int:
         safe["hibp_api_key"] = "Đọc từ biến môi trường HIBP_API_KEY, không lưu trong config"
         print(json.dumps(safe, ensure_ascii=False, indent=2))
         return 0
+    if args.command == "dkim":
+        try:
+            if args.headers_file:
+                raw_headers = read_header_file(args.headers_file)
+                signatures = parse_dkim_signature_headers(raw_headers)
+                if not signatures:
+                    print(json.dumps({
+                        "dkim_status": "unknown",
+                        "reason": "no_valid_dkim_signature_header",
+                        "message": "Không tìm thấy DKIM-Signature hợp lệ có đủ d= và s= trong tệp."
+                    }, ensure_ascii=False, indent=2))
+                    return 2
+            else:
+                domain = normalize_domain(args.domain)
+                selectors = [normalize_selector(item) for item in args.selector]
+                selectors = list(dict.fromkeys(item for item in selectors if item))
+                if not domain or not selectors:
+                    parser.error("Cần domain hợp lệ và ít nhất một --selector hợp lệ.")
+                signatures = [{"domain": domain, "selector": item, "source": "manual"} for item in selectors]
+            result = lookup_dkim_signatures(DomainInspector(config["dns_timeout_seconds"]), signatures)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result.get("dkim_status") in {"present", "revoked"} else 1
+        except (OSError, ValueError) as exc:
+            print(f"DKIM input error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+
     if args.command == "password-audit":
         password = getpass.getpass("Nhập mật khẩu (không lưu/không ghi log): ")
         if not password:

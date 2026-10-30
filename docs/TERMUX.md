@@ -1,27 +1,16 @@
 # Khắc phục sự cố Termux
 
-### `No module named dns`
-```bash
-python -m pip install dnspython
-```
-Hoặc dùng chương trình ở chế độ thiếu DNS (các mục DNS sẽ là `dependency_missing`).
+## DNS trên Android/Termux
 
-### Lệnh `python` không nhận
-```bash
-pkg install python -y
-python --version
-```
+Android có thể phân giải tên miền qua `socket.getaddrinfo()` dù Termux không có
+`/etc/resolv.conf` và `getprop net.dns1` đến `net.dns4` để trống. Trong tình huống
+này, dnspython không tự lấy được nameserver cho MX/TXT. Từ bản 9.0.3, chương trình
+dùng Cloudflare DNS-over-HTTPS qua HTTPS đã xác minh chứng chỉ làm phương án dự
+phòng.
 
-### Resume
-Phải dùng lại đúng `--job-id` cũ:
-```bash
-python mega_checker.py scan -i emails.txt --job-id cong-viec-01 --resume
-```
-Không dùng ID mới nếu muốn nối tiếp tiến độ.
+DoH gửi tên domain và loại bản ghi được tra cứu tới Cloudflare. Để tắt: `export
+MEGA_CHECKER_DOH=0`. Nếu tắt và không có cấu hình resolver khác, trạng thái DNS sẽ
+là `resolver_unconfigured`.
 
-### Database bị lỗi/đầy dung lượng
-Đóng tiến trình Mega Checker trước khi sao chép DB. Dùng:
-```bash
-python mega_checker.py backup
-```
-Không xóa file `-wal` khi chương trình đang chạy.
+Nếu cài đặt `dnspython` riêng, có thể dùng: `python -m pip install dnspython`.
+Bản dự án đã kèm dnspython pure-Python trong `vendor/dns`.

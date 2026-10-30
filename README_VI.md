@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 9.0.1
+# MEGA CHECKER ULTIMATE 9.0.4
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -10,19 +10,20 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Tra cứu public suffix và registrable domain bằng snapshot Public Suffix List (có file giấy phép và hướng dẫn cập nhật).
 - Kiểm tra DNS: MX, A/AAAA fallback, SPF, DMARC và một nhóm selector DKIM thông dụng; đã kèm dnspython 2.8.0 để dùng offline, không buộc pip tải thư viện.
 - Phân biệt `no_mx_record`, `null_mx`, `nxdomain`, `timeout`, `dns_error` và `dependency_missing`; không biến timeout thành “email không tồn tại”.
+- Tra DKIM selector từ header thư thật (`d=`/`s=`) hoặc selector do người chạy cung cấp; phân biệt khóa hoạt động, khóa bị thu hồi, không có bản ghi và chưa đủ dữ liệu.
 - Quét danh sách song song bằng thread pool, giới hạn worker.
 - SQLite WAL, lưu từng kết quả, job ID và khả năng tiếp tục job bằng `--resume`.
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 bổ sung kiểm thử Null MX và khóa lưu trữ của email sai domain.
+- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email.
 
 ## Giới hạn cần hiểu đúng
 
 1. Có MX không chứng minh một hộp thư cụ thể tồn tại.
 2. Không có MX không nhất thiết chứng minh domain không tồn tại; có thể cần xem A/AAAA và cấu hình mail.
 3. SPF/DMARC/DKIM là dấu hiệu cấu hình domain, không phải chứng nhận email an toàn.
-4. DKIM chỉ dò một nhóm selector phổ biến. Không tìm thấy selector không có nghĩa domain chắc chắn không dùng DKIM.
+4. Dò DKIM selector phổ biến chỉ là phép thử gợi ý, không bao phủ toàn bộ selector. Cách chuẩn xác hơn là lấy `d=` và `s=` từ header `DKIM-Signature` của email mẫu, rồi tra TXT tại `s._domainkey.d`. Lệnh `dkim --headers-file` xử lý tệp cục bộ và chỉ in domain/selector/trạng thái, không in giá trị chữ ký `b=`. Lệnh này kiểm tra DNS public key, không xác minh mật mã trên toàn bộ nội dung email. Không tìm thấy selector trong một mẫu email không chứng minh mọi hệ thống gửi thư của domain đều không dùng DKIM.
 5. Danh sách disposable đi kèm chỉ là danh sách khởi đầu, không đầy đủ.
 6. Không kiểm tra tài khoản tại Facebook, TikTok, Gmail, Netflix... bằng form đăng nhập/khôi phục mật khẩu; các cách đó không đáng tin cậy, dễ xâm phạm riêng tư và thường bị giới hạn.
 7. Chỉ tra cứu breach của địa chỉ thuộc quyền sở hữu hoặc được ủy quyền. Không dùng công cụ này để rà soát danh sách người khác không có sự đồng ý.
@@ -40,7 +41,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.1_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.4_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
@@ -51,7 +52,7 @@ Có sẵn `config.json`; có thể chỉnh `workers`, `dns_timeout_seconds`, đ�
 python mega_checker.py config-check
 ```
 
-Thư viện DNS đã được đóng gói kèm trong `vendor/dns`; thông thường không cần cài thêm thư viện. Bản vendor là pure Python và có giấy phép đi kèm.
+Thư viện DNS đã được đóng gói kèm trong `vendor/dns`; thông thường không cần cài thêm thư viện. Bản vendor là pure Python và có giấy phép đi kèm. Nếu Android không cung cấp DNS qua `getprop` và không có `/etc/resolv.conf`, chương trình dùng Cloudflare DoH (`cloudflare-dns.com`) qua HTTPS với xác minh TLS. Nhà cung cấp DoH có thể thấy tên domain và loại bản ghi được truy vấn. Đặt `MEGA_CHECKER_DOH=0` để tắt dự phòng này.
 
 ## Chạy
 
@@ -60,6 +61,20 @@ Một địa chỉ:
 ```bash
 python mega_checker.py single 'you@example.com'
 ```
+
+Tra DKIM theo header email mẫu (nên dùng một email do bạn nhận được; tệp được xử lý cục bộ):
+
+```bash
+python mega_checker.py dkim --headers-file ~/storage/downloads/dkim_headers.txt
+```
+
+Hoặc tra một selector đã biết:
+
+```bash
+python mega_checker.py dkim --domain example.com --selector selector1
+```
+
+Nếu có nhiều selector, lặp `--selector`. Không có header/selector thì chương trình không thể khẳng định selector của domain chỉ từ tên miền.
 
 Quét danh sách:
 
