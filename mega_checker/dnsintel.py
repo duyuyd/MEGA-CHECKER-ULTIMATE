@@ -75,7 +75,21 @@ def _android_dns_nameservers(cache_seconds: float = 30.0) -> list[str]:
 
 DKIM_SELECTORS = (
     "default", "selector1", "selector2", "google", "k1",
-)  # Heuristic sample only; not exhaustive.
+)  # Generic heuristic sample only; not exhaustive.
+
+# Provider-specific selector hints observed in publicly available Gmail message
+# headers. These are candidates, not a claim that every Gmail account uses them.
+# 20251104 was observed on Gmail-signed messages through September 2026.
+# 20230601 and 20221208 were reported as revoked by 2026-09-15.
+DKIM_PROVIDER_SELECTORS = {
+    "gmail.com": ("20251104", "20230601", "20221208"),
+}
+
+
+def dkim_selectors_for_domain(domain: str) -> tuple[str, ...]:
+    """Return generic plus narrowly scoped provider hints for a signing domain."""
+    domain = (domain or "").strip().lower().rstrip(".")
+    return tuple(dict.fromkeys((*DKIM_SELECTORS, *DKIM_PROVIDER_SELECTORS.get(domain, ()))))
 
 class _CloudflareDoHResolver:
     """Small dnspython-compatible resolver using Cloudflare's JSON DoH API.
@@ -333,7 +347,7 @@ class DomainInspector:
         found = []
         revoked = []
         selector_states = []
-        for selector in DKIM_SELECTORS:
+        for selector in dkim_selectors_for_domain(domain):
             records, state = self._resolve_txt(resolver, f"{selector}._domainkey.{domain}")
             selector_states.append(state)
             states = [_dkim_key_record_state(record) for record in records]

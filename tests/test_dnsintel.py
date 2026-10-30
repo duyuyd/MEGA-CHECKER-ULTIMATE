@@ -1,3 +1,4 @@
+from mega_checker.dnsintel import dkim_selectors_for_domain
 import unittest
 import io
 import json
@@ -176,6 +177,13 @@ class DNSInspectorTests(unittest.TestCase):
         self.assertEqual(result["dmarc_status"], "present")
         self.assertEqual(result["dkim_status"], "not_found_in_tested_selectors")
 
+
+    def test_gmail_selector_hints_are_provider_scoped(self):
+        gmail = dkim_selectors_for_domain("gmail.com")
+        self.assertIn("20251104", gmail)
+        self.assertIn("20230601", gmail)
+        self.assertIn("20221208", gmail)
+        self.assertNotIn("20251104", dkim_selectors_for_domain("example.com"))
 
 
 if __name__ == "__main__":

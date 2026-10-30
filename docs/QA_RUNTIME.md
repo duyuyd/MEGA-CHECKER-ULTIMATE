@@ -48,3 +48,8 @@ The command prints only selector metadata and DNS result, not the signature `b=`
 Preferred: export the original email as `.eml` and run `python mega_checker.py dkim --headers-file ~/storage/downloads/original.eml`.
 Optional: copy the full original headers and use `python mega_checker.py dkim --clipboard` when Termux:API is installed.
 Heuristic only: `python mega_checker.py dkim --domain gmail.com --probe-common`. A negative heuristic result does not prove domain-wide DKIM absence.
+
+
+## Gmail DKIM selector hints (9.0.6)
+
+For `gmail.com`, the DNS inspector also checks provider-scoped selectors observed in public message headers. This narrows false negatives for Gmail but is still heuristic. For exact per-message verification, parse that message's own `DKIM-Signature` header.

@@ -1,13 +1,13 @@
-MEGA CHECKER ULTIMATE 9.0.5 — SOURCE FILE MANIFEST
+MEGA CHECKER ULTIMATE 9.0.6 — SOURCE FILE MANIFEST
 File sizes are byte counts; this manifest does not list itself or checksums.sha256.
 
 .github/workflows/tests.yml                                                             590 bytes
 .gitignore                                                                              331 bytes
-CHANGELOG.md                                                                           3634 bytes
+CHANGELOG.md                                                                           4240 bytes
 LICENSE                                                                                 694 bytes
 LICENSE-MPL-2.0                                                                       16726 bytes
-README.md                                                                              9200 bytes
-README_VI.md                                                                           9200 bytes
+README.md                                                                              9349 bytes
+README_VI.md                                                                           9349 bytes
 THIRD_PARTY_NOTICES.md                                                                  574 bytes
 config.json                                                                             241 bytes
 data/README_PSL.txt                                                                     499 bytes
@@ -18,17 +18,18 @@ docs/ARCHITECTURE.md                                                            
 docs/LEGACY_AUDIT.md                                                                   1156 bytes
 docs/QA.md                                                                              691 bytes
 docs/QA_DKIM_9.0.5.md                                                                  1341 bytes
-docs/QA_LAST_RUN.txt                                                                    424 bytes
-docs/QA_RUNTIME.md                                                                     2241 bytes
+docs/QA_DKIM_9.0.6.md                                                                   811 bytes
+docs/QA_LAST_RUN.txt                                                                    584 bytes
+docs/QA_RUNTIME.md                                                                     2539 bytes
 docs/SECURITY.md                                                                       1635 bytes
 docs/TERMUX.md                                                                          840 bytes
 logs/mega_checker.log                                                                     0 bytes
 mega_checker/__init__.py                                                                322 bytes
 mega_checker/__main__.py                                                                 47 bytes
-mega_checker/cli.py                                                                   16997 bytes
+mega_checker/cli.py                                                                   17486 bytes
 mega_checker/config.py                                                                 2653 bytes
-mega_checker/dkim.py                                                                   7281 bytes
-mega_checker/dnsintel.py                                                              14454 bytes
+mega_checker/dkim.py                                                                   7359 bytes
+mega_checker/dnsintel.py                                                              15162 bytes
 mega_checker/exporters.py                                                              1264 bytes
 mega_checker/hibp.py                                                                   3838 bytes
 mega_checker/models.py                                                                 1402 bytes
@@ -43,8 +44,8 @@ scripts/install_termux.sh                                                       
 scripts/publish_github_termux.sh                                                       4077 bytes
 scripts/runtime_smoke_test.py                                                          6335 bytes
 tests/test_config.py                                                                   1181 bytes
-tests/test_dkim.py                                                                     5841 bytes
-tests/test_dnsintel.py                                                                 8111 bytes
+tests/test_dkim.py                                                                     6402 bytes
+tests/test_dnsintel.py                                                                 8490 bytes
 tests/test_hibp.py                                                                     2069 bytes
 tests/test_pipeline.py                                                                 2635 bytes
 tests/test_storage.py                                                                  1329 bytes

@@ -178,8 +178,9 @@ def lookup_dkim_signatures(inspector: Any, signatures: Iterable[dict[str, str]])
     elif any(item["status"] == "revoked" for item in results):
         overall = "revoked"
     elif results and all(item["status"] == "not_found" for item in results):
-        if all(item.get("source") == "common-selector-heuristic" for item in results):
-            overall = "not_found_in_tested_common_selectors"
+        heuristic_sources = {"common-selector-heuristic", "gmail-provider-observed-hint"}
+        if all(item.get("source") in heuristic_sources for item in results):
+            overall = "not_found_in_tested_selector_hints"
         else:
             overall = "not_found_for_supplied_selectors"
     elif results and all(item["status"] == "invalid_record" for item in results):

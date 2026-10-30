@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 from . import APP_NAME, __version__
 from .config import BASE_DIR, load_config, setup_logging
-from .dnsintel import DomainInspector, DKIM_SELECTORS
+from .dnsintel import DomainInspector, DKIM_SELECTORS, DKIM_PROVIDER_SELECTORS, dkim_selectors_for_domain
 from .dkim import parse_dkim_signature_headers, read_header_file, read_clipboard_header_text, lookup_dkim_signatures, normalize_selector
 from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
@@ -247,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
                 selectors = [normalize_selector(item) for item in args.selector]
                 selectors = list(dict.fromkeys(item for item in selectors if item))
                 if args.probe_common:
-                    for item in DKIM_SELECTORS:
+                    for item in dkim_selectors_for_domain(domain):
                         if item not in selectors:
                             selectors.append(item)
                 if not selectors:
@@ -257,7 +257,16 @@ def main(argv: list[str] | None = None) -> int:
                     return 2
                 signatures = [{
                     "domain": domain, "selector": item,
-                    "source": "common-selector-heuristic" if args.probe_common and item in DKIM_SELECTORS and item not in [normalize_selector(x) for x in args.selector] else "manual"
+                    "source": (
+                        "gmail-provider-observed-hint" if args.probe_common
+                        and domain in DKIM_PROVIDER_SELECTORS
+                        and item in DKIM_PROVIDER_SELECTORS[domain]
+                        and item not in [normalize_selector(x) for x in args.selector]
+                        else "common-selector-heuristic" if args.probe_common
+                        and item in DKIM_SELECTORS
+                        and item not in [normalize_selector(x) for x in args.selector]
+                        else "manual"
+                    )
                 } for item in selectors]
 
             result = lookup_dkim_signatures(DomainInspector(config["dns_timeout_seconds"]), signatures)

@@ -114,7 +114,18 @@ class DKIMHeaderTests(unittest.TestCase):
         result = lookup_dkim_signatures(inspector, [{
             "domain": "example.com", "selector": "selector1", "source": "common-selector-heuristic"
         }])
-        self.assertEqual(result["dkim_status"], "not_found_in_tested_common_selectors")
+        self.assertEqual(result["dkim_status"], "not_found_in_tested_selector_hints")
+
+    def test_gmail_provider_hint_negative_is_still_heuristic(self):
+        inspector = Mock()
+        resolver = Mock(); resolver.nameservers = ["1.1.1.1"]
+        inspector._create_resolver.return_value = (resolver, "test_resolver")
+        inspector._resolve_txt.return_value = ([], "nxdomain")
+        result = lookup_dkim_signatures(inspector, [{
+            "domain": "gmail.com", "selector": "20251104",
+            "source": "gmail-provider-observed-hint"
+        }])
+        self.assertEqual(result["dkim_status"], "not_found_in_tested_selector_hints")
 
 
 if __name__ == "__main__":

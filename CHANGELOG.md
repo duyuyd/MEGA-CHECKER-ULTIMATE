@@ -50,3 +50,11 @@
 - Added `dkim --domain DOMAIN --probe-common` as an explicitly heuristic selector probe. A negative result is labelled `not_found_in_tested_common_selectors`, not a domain-wide DKIM absence.
 - Replaced the confusing missing-selector parser error with Vietnamese examples and a clear explanation of how to obtain `d=`/`s=`.
 - Retained local `.eml`/header-file parsing as the preferred, more accurate workflow.
+
+
+## 9.0.6 — Gmail selector hint coverage
+
+- Added a provider-scoped Gmail selector hint set: `20251104` (observed on publicly available Gmail-signed headers through September 2026), plus `20230601` and `20221208` to recognize historical revoked-key records.
+- Generic selector probing remains unchanged for other domains; Gmail-specific candidates are only queried for `gmail.com`.
+- Renamed the negative heuristic result to `not_found_in_tested_selector_hints` to make its scope explicit; it does not prove domain-wide DKIM absence.
+- Added tests for provider scoping and heuristic negative semantics.

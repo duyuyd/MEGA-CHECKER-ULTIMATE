@@ -1,11 +1,11 @@
-MEGA CHECKER ULTIMATE 9.0.5 QA — 2026-10-30
+MEGA CHECKER ULTIMATE 9.0.6 QA
 
-Build validation:
-- Unit tests: 45/45 passed
-- Unit tests with python -S: 45/45 passed
-- Self-test: 12/12 passed
-- Offline runtime smoke tests: 8/8 passed
-- CLI version and DKIM help: passed
-- Missing DKIM input: actionable Vietnamese guidance displayed
+Python compileall: PASS
+Self-test: 12/12 PASS
+Unit tests: 47/47 PASS
+Unit tests with python -S: 47/47 PASS
+Runtime offline smoke: 8/8 PASS
+Checksum manifest: 221/221 PASS
+ZIP integrity: PASS
 
-Network DKIM verification still requires a real original email (.eml) or full DKIM-Signature header from the user device.
+Network note: the Gmail selector hints are based on publicly available DKIM headers from Gmail-signed messages through September 2026 and historical revocation observations. Live selector DNS validation still has to be performed by the resolver on the target Android device. This is a DNS key lookup, not full cryptographic verification of an email signature.

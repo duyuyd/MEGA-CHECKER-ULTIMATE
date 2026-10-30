@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 9.0.5
+# MEGA CHECKER ULTIMATE 9.0.6
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -16,7 +16,7 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux.
+- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux; 9.0.6 bổ sung selector Gmail được quan sát trong header công khai và phân biệt selector gợi ý với selector lấy từ email thật.
 
 ## Giới hạn cần hiểu đúng
 
@@ -41,7 +41,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.5_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.0.6_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
