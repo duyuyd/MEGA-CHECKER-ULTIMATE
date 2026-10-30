@@ -1,8 +1,8 @@
-# MEGA CHECKER ULTIMATE 9.1.0
+# MEGA CHECKER ULTIMATE 10.1.1
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
-## Có gì trong bản 9
+## Có gì trong bản 10
 
 - Kiểm tra cấu trúc email, IDNA/Punycode (UTS #46), giới hạn 254 byte sau chuẩn hóa, ký tự và lỗi gõ tên miền phổ biến; chuẩn hóa domain nhưng giữ nguyên local-part.
 - Nhận diện domain email tạm từ danh sách cục bộ có thể cập nhật.
@@ -17,7 +17,10 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux; 9.0.6 bổ sung selector Gmail được quan sát trong header công khai; 9.1.0 thêm xác minh DKIM mật mã bằng toàn bộ email `.eml` nguyên bản.
+- Bộ self-test ngoại tuyến.
+- Kiểm toán dataset ngoại tuyến email-only hoặc email:secret/email|secret; chỉ báo cáo tổng hợp, không thử đăng nhập và không lưu/log/xuất secret.
+- Bộ lập lịch batch giới hạn số future đồng thời: tối đa 2×worker, trần 128.
+- Metadata phiên bản hiện tại 10.1.1; engine kiểm toán và các module trước được giữ nguyên. Engine audit đọc theo lô 2.048 fingerprint, giới hạn SQLite cache 4 MiB và thống kê top 20 domain chính xác mà không giữ mọi domain trong RAM. Báo cáo JSON được ghi nguyên tử với quyền 0600. Bản 10.0.4 sửa nhận diện dấu phân cách khi secret chứa `:`/`|`, hỗ trợ email được bọc dấu ngoặc kép, loại bỏ lần chuẩn hóa IDNA lặp và bổ sung thống kê lỗi cú pháp tổng hợp không chứa địa chỉ nguồn.
 
 ## Giới hạn cần hiểu đúng
 
@@ -42,7 +45,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.1.0_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V10.1.1_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
@@ -114,6 +117,17 @@ Menu tương tác:
 ```bash
 python mega_checker.py
 ```
+
+## Kiểm toán dataset ngoại tuyến (không thử đăng nhập)
+
+Phân tích file email-only hoặc dạng `email:secret`, `email|secret`, `email;secret` mà không sử dụng thông tin đăng nhập. Phần sau dấu phân tách chỉ được nhận diện rồi loại bỏ; không lưu vào DB dự án, không ghi log và không xuất báo cáo. Dedupe chính xác sử dụng HMAC-SHA256 có khóa ngẫu nhiên theo phiên; SQLite tạm chỉ chứa fingerprint không thể đảo ngược nếu không có khóa, và tự xóa khi hoàn tất.
+
+```bash
+python mega_checker.py audit-dataset -i dataset.txt --format auto --json audit_report.json
+python mega_checker.py audit-dataset -i emails.txt --format email
+```
+
+Báo cáo chỉ có thống kê số lượng, domain và nhà cung cấp; không có email đầy đủ hoặc secret. Đây là phân tích định dạng offline, không xác minh mật khẩu, quyền sở hữu hay khả năng đăng nhập. Chỉ xử lý tệp bạn có quyền kiểm toán.
 
 ## Tra cứu breach HIBP (tùy chọn)
 
@@ -196,3 +210,24 @@ Termux distributes pip as the separate `python-pip` package. Release/install
 scripts from 9.1.1 bootstrap it with `pkg install -y python-pip` only when
 `python -m pip` is unavailable. Do not use `get-pip.py` or upgrade Termux's
 pip package directly from PyPI.
+
+## Android Dual Access (No-Root first, ROOT optional — 10.1.1)
+
+**No-Root is the default and ROOT is optional.** The parser, HMAC dedupe, SQLite aggregation and reporting work without ROOT. For dataset input, `--access-mode auto` first uses ordinary Termux permissions and invokes `su` only when the OS returns `PermissionError`:
+
+```bash
+# Default: No-Root first, optional ROOT fallback only if access is denied
+python mega_checker.py audit-dataset -i ~/storage/shared/list.txt --access-mode auto --format auto
+
+# Strict No-Root: never invokes su
+python mega_checker.py audit-dataset -i ~/storage/shared/list.txt --access-mode noroot --format auto
+
+# Explicit ROOT for one selected absolute file
+python mega_checker.py audit-dataset -i /data/local/tmp/list.txt --access-mode root --format auto
+
+# Device facts available to the current UID and optional ROOT grant status
+python mega_checker.py root-audit
+```
+
+`--root-input` remains as an older alias for `--access-mode root`. If ROOT is absent or the grant is declined, the normal No-Root engine remains fully usable. Reports identify the actual `access_mode`. The ROOT bridge is read-only and does not expose arbitrary shell execution, recursive app-private-data scanning, or system mutation.
+

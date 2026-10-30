@@ -1,0 +1,27 @@
+MEGA CHECKER ULTIMATE 10.0.0 — LOCAL QA RECORD
+Date: 2026-10-30
+Build environment: Linux container, Python 3.13
+Target: Android/Termux and Linux; no physical-device execution of this build.
+
+SELF-TEST
+- python mega_checker.py self-test: PASS, 12/12.
+
+AUTOMATED TESTS
+- python -m unittest discover -s tests -q: PASS, 69 discovered; 66 passed, 3 skipped.
+- python -S -m unittest discover -s tests -q: PASS, 69 discovered; 66 passed, 3 skipped.
+- The 3 skips are the optional real dkimpy cryptographic integration tests because dkimpy is not installed in this build environment. They are configured to run in GitHub Actions after installing dkimpy 1.1.8.
+- New dataset audit tests cover parsing, duplicate counts, secret redaction, oversized lines and input bounds.
+- New scheduler tests confirm workers are capped at 32 and in-flight futures at 2x workers (hard cap 128).
+
+RUNTIME SMOKE
+- scripts/runtime_smoke_test.py: PASS, 8/8 offline checks.
+- CLI audit-dataset end-to-end with synthetic data: PASS; report contains aggregate counts only.
+- Secret-leak regression check on console and JSON report: PASS; synthetic secret markers were not present.
+- compileall: PASS.
+- release_10_termux.sh Bash syntax: PASS.
+
+NETWORK / DEVICE LIMITS
+- No account login, password-reset, cookie/token operation or account mutation was attempted.
+- No live HIBP lookup was performed.
+- DNS and DKIM live behavior is unchanged from the previous device-tested versions and must be confirmed on the target Android network after installation.
+- This local QA is not a substitute for the GitHub Actions matrix or a final Termux device run.

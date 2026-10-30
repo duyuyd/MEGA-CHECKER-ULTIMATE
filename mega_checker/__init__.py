@@ -6,5 +6,5 @@ _VENDOR = Path(__file__).resolve().parent.parent / "vendor"
 if _VENDOR.is_dir() and str(_VENDOR) not in sys.path:
     sys.path.insert(0, str(_VENDOR))
 
-__version__ = "9.1.0"
+__version__ = "10.1.1"
 APP_NAME = "MEGA CHECKER ULTIMATE"

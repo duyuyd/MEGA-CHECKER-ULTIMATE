@@ -15,3 +15,12 @@
 ## DKIM header lookup privacy (9.0.4)
 
 `mega_checker.py dkim --headers-file ...` reads the selected message/header file locally and extracts only the DKIM signing domain (`d=`) and selector (`s=`). It does not send the message, body, `b=` signature value, sender, or recipient to a remote service. When Cloudflare DoH is the active resolver, the DNS query name (`selector._domainkey.signing-domain`) and TXT query type are sent to Cloudflare over HTTPS. The command checks publication of the DKIM public-key TXT record; it does not cryptographically verify the message signature.
+
+
+## Android Dual Access 10.1.1
+
+- No-Root is the default. Normal readable files never trigger a ROOT prompt.
+- `auto` falls back to `su` only when opening the selected file raises `PermissionError`; `noroot` never invokes `su`; `root` is explicit.
+- ROOT commands remain fixed and read-only; only one user-selected absolute file is streamed with `cat`.
+- No arbitrary shell, recursive app-private-data extraction, login, cookie/token use, or system mutation is provided.
+- A failed or declined ROOT grant leaves the No-Root engine available; reports record the actual access path.

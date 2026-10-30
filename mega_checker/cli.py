@@ -47,6 +47,17 @@ def _make_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("self-test", help="Chạy bộ tự kiểm tra ngoại tuyến")
+
+    audit = sub.add_parser("audit-dataset", help="Phân tích file email/credential ngoại tuyến; không thử đăng nhập")
+    audit.add_argument("-i", "--input", required=True, help="Tệp văn bản đầu vào")
+    audit.add_argument("--format", choices=("auto", "email", "combo"), default="auto", help="Định dạng dữ liệu (mặc định: auto)")
+    audit.add_argument("--json", help="Lưu báo cáo tổng hợp JSON; không chứa mật khẩu")
+    audit.add_argument("--max-line-bytes", type=int, default=65536, help="Giới hạn độ dài dòng: 1024–1048576")
+    audit.add_argument("--access-mode", choices=("auto", "noroot", "root"), default="auto",
+                       help="Quyền đọc dữ liệu: auto (No-Root trước, ROOT fallback khi bị chặn), noroot hoặc root")
+    audit.add_argument("--root-input", action="store_true", help=argparse.SUPPRESS)  # legacy alias
+    root_audit = sub.add_parser("root-audit", help="Kiểm tra quyền ROOT, SELinux, CPU/RAM và nhiệt độ Android (chỉ đọc)")
+    root_audit.add_argument("--json", help="Lưu báo cáo thiết bị JSON")
     dkim = sub.add_parser("dkim", help="Tra DKIM từ tệp email, clipboard hoặc selector")
     dkim_source = dkim.add_mutually_exclusive_group(required=False)
     dkim_source.add_argument("--headers-file", help="Tệp .eml hoặc header DKIM-Signature (xử lý cục bộ)")
@@ -210,6 +221,36 @@ def main(argv: list[str] | None = None) -> int:
         return interactive_menu(config)
     if args.command == "self-test":
         return _self_test()
+    if args.command == "root-audit":
+        from .root_access import root_status, write_root_report, RootAccessError
+        try:
+            report = root_status()
+            if args.json:
+                target = write_root_report(report, args.json)
+                print(f"ROOT report: {target}")
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            # Lack of ROOT is a valid diagnostic outcome; No-Root remains supported.
+            return 0
+        except RootAccessError as exc:
+            print(f"ROOT audit error: {exc}", file=sys.stderr)
+            return 2
+    if args.command == "audit-dataset":
+        from .dataset_audit import audit_dataset, write_report
+        from .root_access import open_dataset_input, RootAccessError
+        try:
+            selected_access = "root" if args.root_input else args.access_mode
+            with open_dataset_input(args.input, selected_access) as (source_stream, actual_access):
+                report = audit_dataset(Path(args.input), mode=args.format,
+                                       max_line_bytes=args.max_line_bytes,
+                                       input_stream=source_stream, access_mode=actual_access)
+            if args.json:
+                target = write_report(report, Path(args.json), source_path=Path(args.input))
+                print(f"Báo cáo JSON: {target}")
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0
+        except (OSError, ValueError, RootAccessError) as exc:
+            print(f"Dataset audit error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
     if args.command == "config-check":
         safe = dict(config)
         safe["hibp_api_key"] = "Đọc từ biến môi trường HIBP_API_KEY, không lưu trong config"

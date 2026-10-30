@@ -1,0 +1,20 @@
+MEGA CHECKER ULTIMATE 10.0.1 — LOCAL QA RECORD
+Date: 2026-10-30
+Build environment: Linux container, Python 3.13
+Target: Android/Termux and Linux; no physical-device execution of this build.
+
+CHANGE-SPECIFIC REGRESSION TESTS
+- Oversized line whose newline fits in the first bounded read: PASS.
+- Exact deduplication using per-run keyed HMAC-SHA256: PASS.
+- Refusal to overwrite source input with JSON report: PASS.
+
+FULL AUTOMATED TESTS
+- python -m unittest discover -s tests -v: 72 tests discovered; 69 passed, 3 skipped.
+- 3 skips are optional dkimpy cryptographic integration tests because dkimpy is not installed in this build environment.
+- python -S -m unittest discover -s tests -q: run separately before packaging.
+- scripts/runtime_smoke_test.py: run separately before packaging.
+- self-test and CLI end-to-end: run separately before packaging.
+
+LIMITS
+- This is local Linux QA, not a physical Android/Termux device test.
+- No account login, password-reset, cookie/token operation, account mutation, or live HIBP lookup was performed.

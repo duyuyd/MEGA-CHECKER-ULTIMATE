@@ -51,16 +51,21 @@ def check_breached_email(email: str, api_key: str | None = None, timeout: float 
             return {"status": "breached" if breaches else "not_breached",
                     "breaches": breaches}
     except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            return {"status": "not_breached", "breaches": []}
-        if exc.code == 401:
-            raise HIBPError("HIBP từ chối API key (401). Kiểm tra key.") from exc
-        if exc.code == 403:
-            raise HIBPError("HIBP không cấp quyền cho endpoint/gói hiện tại (403).") from exc
-        if exc.code == 429:
-            retry = exc.headers.get("Retry-After", "unknown")
-            raise HIBPError(f"HIBP giới hạn tốc độ (429). Retry-After={retry}.") from exc
-        raise HIBPError(f"HIBP trả HTTP {exc.code}.") from exc
+        # HTTPError is also a response object. Close its body on every branch;
+        # otherwise Python 3.14 can emit ResourceWarning during finalization.
+        try:
+            if exc.code == 404:
+                return {"status": "not_breached", "breaches": []}
+            if exc.code == 401:
+                raise HIBPError("HIBP từ chối API key (401). Kiểm tra key.") from exc
+            if exc.code == 403:
+                raise HIBPError("HIBP không cấp quyền cho endpoint/gói hiện tại (403).") from exc
+            if exc.code == 429:
+                retry = exc.headers.get("Retry-After", "unknown")
+                raise HIBPError(f"HIBP giới hạn tốc độ (429). Retry-After={retry}.") from exc
+            raise HIBPError(f"HIBP trả HTTP {exc.code}.") from exc
+        finally:
+            exc.close()
     except Exception as exc:
         raise HIBPError(f"Không truy cập được HIBP: {type(exc).__name__}.") from exc
 
@@ -82,5 +87,9 @@ def check_password_k_anonymity(password: str, timeout: float = 12.0) -> dict:
                             "method": "k-anonymity (5-char prefix only)"}
         return {"status": "not_found", "count": 0,
                 "method": "k-anonymity (5-char prefix only)"}
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        exc.close()
+        raise HIBPError(f"Không truy cập được Pwned Passwords: HTTP {status}.") from exc
     except Exception as exc:
         raise HIBPError(f"Không truy cập được Pwned Passwords: {type(exc).__name__}.") from exc

@@ -1,8 +1,8 @@
-# MEGA CHECKER ULTIMATE 9.1.0
+# MEGA CHECKER ULTIMATE 10.1.1
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
-## Có gì trong bản 9
+## Có gì trong bản 10
 
 - Kiểm tra cấu trúc email, IDNA/Punycode (UTS #46), giới hạn 254 byte sau chuẩn hóa, ký tự và lỗi gõ tên miền phổ biến; chuẩn hóa domain nhưng giữ nguyên local-part.
 - Nhận diện domain email tạm từ danh sách cục bộ có thể cập nhật.
@@ -17,7 +17,31 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Xuất CSV UTF-8-SIG, JSON và HTML đã escape dữ liệu.
 - Backup SQLite bằng API backup an toàn.
 - Kiểm tra HIBP có API key khi người chạy xác nhận quyền; API password range dùng k-anonymity, chỉ gửi 5 ký tự đầu SHA-1.
-- Bộ self-test ngoại tuyến. Bản 9.0.1 sửa Null MX và khóa lưu trữ email lỗi; 9.0.2 bổ sung đọc DNS Android; 9.0.3 thêm Cloudflare DNS-over-HTTPS dự phòng; 9.0.4 bổ sung tra DKIM selector từ header email; 9.0.5 cải thiện quy trình DKIM trên Termux; 9.0.6 bổ sung selector Gmail được quan sát trong header công khai; 9.1.0 thêm xác minh DKIM mật mã bằng toàn bộ email `.eml` nguyên bản; 9.1.1 sửa tự cài gói `python-pip` riêng của Termux khi thiếu pip.
+- Bộ self-test ngoại tuyến.
+- Bộ stress test dataset hỗn hợp 100.000 dòng chạy hoàn toàn offline: `python scripts/dataset_stress_test.py`; dữ liệu synthetic tự sinh trong thư mục tạm và tự xóa sau khi chạy.
+- Kiểm toán dataset ngoại tuyến dạng email-only hoặc email:secret/email|secret; chỉ tạo thống kê tổng hợp, không thử đăng nhập, không lưu/log/xuất phần secret. Dedupe chính xác bằng HMAC-SHA256 có khóa ngẫu nhiên theo phiên, chỉ lưu fingerprint trong SQLite tạm tự xóa; khóa không ghi ra đĩa.
+- Scheduler batch giới hạn số tác vụ đang chờ ở mức tối đa 2×worker (trần 128). Bản 10.0.3 tối ưu audit dataset bằng HMAC theo lô 2.048 bản ghi, SQLite cache 4 MiB và top 20 domain chính xác trong SQLite. Bản 10.0.4 sửa parser để dấu phân cách trong secret không làm hỏng email, chấp nhận email có dấu ngoặc kép, chỉ chuẩn hóa domain một lần và xuất thống kê lỗi tổng hợp không chứa dữ liệu nguồn.
+- Metadata phiên bản package hiện tại 10.1.1; các gia cố quyền riêng tư, HIBP cleanup, DKIM và Termux từ các bản trước được giữ nguyên.
+
+## Android Dual Access 10.1.1 — No-Root trước, ROOT tùy chọn
+
+No-Root là đường chạy mặc định. Toàn bộ parser, HMAC dedup, SQLite và báo cáo tiếp tục hoạt động khi điện thoại không root.
+
+```bash
+# Tự động: thử quyền Termux trước; chỉ gọi su sau PermissionError
+python mega_checker.py audit-dataset -i ~/storage/shared/list.txt --access-mode auto
+
+# Bắt buộc No-Root, tuyệt đối không gọi su
+python mega_checker.py audit-dataset -i ~/storage/shared/list.txt --access-mode noroot
+
+# Chủ động dùng ROOT cho đúng một file tuyệt đối
+python mega_checker.py audit-dataset -i /data/local/tmp/list.txt --access-mode root
+
+# Xem thông tin thiết bị và trạng thái cấp quyền
+python mega_checker.py root-audit
+```
+
+`--root-input` vẫn được hỗ trợ như bí danh cũ của `--access-mode root`. `root-audit` trả kết quả chẩn đoán thành công cả khi không có ROOT; báo cáo ghi `access_mode: noroot`. Xem `docs/ROOT_MODE.md`.
 
 ## Giới hạn cần hiểu đúng
 
@@ -42,7 +66,7 @@ Cho Termux quyền truy cập tệp (làm một lần), rồi giải nén ZIP đ
 ```bash
 termux-setup-storage
 mkdir -p ~/mega-checker
-unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V9.1.0_FIXED.zip -d ~/mega-checker
+unzip ~/storage/downloads/MEGA_CHECKER_ULTIMATE_V10.1.1_FIXED.zip -d ~/mega-checker
 cd ~/mega-checker/MEGA_CHECKER_ULTIMATE
 python mega_checker.py self-test
 ```
@@ -114,6 +138,30 @@ Menu tương tác:
 ```bash
 python mega_checker.py
 ```
+
+## Kiểm toán dataset ngoại tuyến (không thử đăng nhập)
+
+Dùng để hiểu cấu trúc file email hoặc file dạng `email:secret`, `email|secret` mà không sử dụng thông tin đăng nhập. Phần sau dấu phân tách chỉ được nhận diện là dữ liệu nhạy cảm và loại bỏ; không lưu vào SQLite dự án, không ghi log và không xuất báo cáo.
+
+```bash
+python mega_checker.py audit-dataset -i danh_sach.txt --format auto --json audit_report.json
+```
+
+Các chế độ: `auto` (tự nhận dạng), `email` (mỗi dòng một địa chỉ), `combo` (ưu tiên cấu trúc email + phần secret). Báo cáo gồm số dòng, hợp lệ/không hợp lệ, trùng lặp, nhà cung cấp và domain phổ biến. Dedupe chính xác dùng fingerprint HMAC-SHA256 có khóa ngẫu nhiên theo phiên; khóa không được ghi ra đĩa và SQLite tạm tự xóa khi hoàn tất. Báo cáo JSON chỉ có số liệu tổng hợp, không chứa email đầy đủ hoặc mật khẩu.
+
+Ví dụ file chỉ có email:
+
+```bash
+python mega_checker.py audit-dataset -i emails.txt --format email
+```
+
+Ví dụ file `email:secret` (chỉ phân tích định dạng, không xác minh mật khẩu):
+
+```bash
+python mega_checker.py audit-dataset -i local_dataset.txt --format auto
+```
+
+Không dùng tính năng này để thử đăng nhập hoặc xác nhận quyền sở hữu tài khoản. Chỉ kiểm toán các tệp bạn có quyền xử lý.
 
 ## Tra cứu breach HIBP (tùy chọn)
 

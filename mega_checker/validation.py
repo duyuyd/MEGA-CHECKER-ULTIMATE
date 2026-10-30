@@ -90,17 +90,24 @@ def is_disposable_domain(domain: str, domains: set[str]) -> bool:
 
 def validate_email(email: str, disposable_domains: set[str] | None = None) -> EmailResult:
     raw = (email or "").strip()
-    normalized = normalize_email(raw)
+    if not raw or raw.count("@") != 1:
+        result = EmailResult(
+            email=raw, normalized_email=normalize_email(raw),
+            masked_email=mask_email(raw), syntax_status="invalid"
+        )
+        result.errors.append("Địa chỉ trống hoặc không có đúng một ký tự @.")
+        return result
+
+    # Normalize the domain exactly once. The previous implementation called
+    # normalize_email() (which normalized the domain) and then normalized the
+    # same domain again below. IDNA conversion is non-trivial on large datasets.
+    local, domain_raw = raw.rsplit("@", 1)
+    domain = normalize_domain(domain_raw)
+    normalized = f"{local}@{domain}" if domain else raw
     result = EmailResult(
         email=raw, normalized_email=normalized, masked_email=mask_email(raw),
         syntax_status="invalid"
     )
-    if not raw or raw.count("@") != 1:
-        result.errors.append("Địa chỉ trống hoặc không có đúng một ký tự @.")
-        return result
-
-    local, domain_raw = raw.rsplit("@", 1)
-    domain = normalize_domain(domain_raw)
     result.local_part = local
     result.domain = domain
     parts = domain_parts(domain)

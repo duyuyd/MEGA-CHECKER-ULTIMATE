@@ -1,0 +1,43 @@
+{
+  "report_schema": "mega-checker-dataset-audit-v1",
+  "mode": "auto",
+  "source_name": "dataset_100000.txt",
+  "source_size_bytes": 2188890,
+  "lines_total": 100000,
+  "records_parsed": 100000,
+  "email_only_records": 100000,
+  "credential_shaped_records": 0,
+  "blank_or_comment_lines": 0,
+  "malformed_or_oversized_lines": 0,
+  "oversized_lines": 0,
+  "valid_email_records": 100000,
+  "invalid_email_records": 0,
+  "unique_parsed_identifiers": 100000,
+  "duplicate_records": 0,
+  "unique_valid_email_records": 100000,
+  "provider_distribution": {
+    "custom": 100000
+  },
+  "top_domains": [
+    {
+      "domain": "example.com",
+      "count": 100000
+    }
+  ],
+  "disposable_domain_records": 0,
+  "typo_hint_records": 0,
+  "security": {
+    "authentication_attempts": 0,
+    "secret_values_persisted": false,
+    "secret_values_logged": false,
+    "secret_values_processed_transiently_in_memory": true,
+    "secret_values_exported": false,
+    "temporary_dedup_storage": "keyed HMAC-SHA256 fingerprints only; per-run key never persisted; automatically deleted"
+  },
+  "notes": [
+    "Đây là kiểm toán định dạng ngoại tuyến; không thử đăng nhập hoặc xác minh mật khẩu.",
+    "Dòng có dạng email<separator>secret chỉ được đếm; phần secret bị loại bỏ ngay khi phân tích.",
+    "Địa chỉ email là dữ liệu cá nhân; giữ báo cáo và tệp nguồn ở nơi riêng tư.",
+    "Một địa chỉ hợp lệ về cú pháp không chứng minh hộp thư tồn tại hoặc người dùng sở hữu nó."
+  ]
+}

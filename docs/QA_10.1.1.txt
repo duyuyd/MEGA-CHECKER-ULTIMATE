@@ -1,0 +1,18 @@
+MEGA CHECKER ULTIMATE 10.1.1 — DUAL ACCESS QA
+
+Build environment verification:
+- Python compileall: PASS
+- Unit tests: 92 run; 89 passed, 3 optional DKIM integration tests skipped.
+- Unit tests with ResourceWarning promoted to error: PASS.
+- Unit tests under python -S: PASS (same optional DKIM skips).
+- Self-test: 12/12 PASS.
+- Runtime smoke: 8/8 PASS.
+- Mixed dataset stress: 100,000 lines; all 11 expected aggregates PASS; synthetic secrets absent from report.
+- No-Root readable file path: PASS; confirmed su bridge is not invoked.
+- Strict No-Root mode: PASS; never invokes su.
+- Auto mode after simulated PermissionError: PASS; falls back to the selected file only.
+- ROOT status without su: PASS; returns No-Root device facts.
+- ROOT diagnostic with su granted in build container: PASS.
+
+Target-device note:
+- This build container is not the user's Android phone. Termux/Android access behavior should be confirmed on the target device; no ROOT grant is assumed.

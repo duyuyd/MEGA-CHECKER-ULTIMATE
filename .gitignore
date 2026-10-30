@@ -22,3 +22,7 @@ ketqua*.csv
 ketqua*.json
 *.tmp
 .DS_Store
+
+# Redacted offline dataset audit reports
+audit_report*.json
+dataset_audit*.json

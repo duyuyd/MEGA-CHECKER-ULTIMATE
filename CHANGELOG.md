@@ -1,12 +1,62 @@
 # CHANGELOG
 
+## 10.1.1 — No-Root first, optional ROOT fallback
+- Reframed Android access into `auto`, `noroot`, and `root` modes; the default first uses ordinary Termux permissions.
+- `auto` invokes `su` only after an operating-system `PermissionError`; normal readable files never trigger a ROOT prompt.
+- `noroot` never calls `su`; `root` is explicit and restricted to one caller-selected absolute file.
+- Device diagnostics now report available unprivileged facts when `su` is absent or denied; lack of ROOT is a valid outcome and does not disable the core engine.
+- Dataset reports record the actual `access_mode`; retained `--root-input` as a backwards-compatible alias.
+- Shared parser, HMAC deduplication and SQLite aggregation are used by both access paths.
+
+
+## 10.0.4 — Parser correctness and validation efficiency
+- Fixed separator detection for credential-shaped lines: the parser now splits at the earliest recognized delimiter after the email `@`, so delimiters inside a secret (for example `email|pass:word`) cannot corrupt the email prefix.
+- Accepts quoted email-only records and quoted email-first CSV-style pairs without retaining the secret field.
+- Avoids repeating IDNA/domain normalization inside `validate_email`; the normalized domain is computed once and reused.
+- Adds an aggregate-only `validation_error_distribution` to dataset reports; it contains generic validator messages and counts, never source addresses or secret values.
+- Added regression tests for mixed delimiters in secret fields, quoted records, aggregate-only error statistics, and single-pass domain normalization.
+- Existing report fields and the dataset report schema remain backward compatible. No account authentication or credential use is added.
+
+## 10.0.3 — Bounded-memory dataset engine and atomic reports
+- Reused `validate_email(...).normalized_email`; removed a second IDNA/domain-normalization pass for every record.
+- Replaced per-record SQLite writes with bounded batches of 2,048 HMAC fingerprints.
+- Split exact all-record and valid-record dedup indexes so duplicate/unique counters remain exact across batch boundaries.
+- Moved exact domain-frequency aggregation to temporary SQLite; Python memory no longer grows with the number of distinct domains. Top-20 ties now use deterministic alphabetical ordering.
+- Set a 4 MiB SQLite page-cache limit; temporary DB journaling is disabled because the scratch database is discarded after each run.
+- Made JSON report output atomic and owner-only (`0600`) to reduce partial-file and local-disclosure risk.
+- Added regression tests for batch-boundary duplicates, invalid duplicates, high-cardinality domain ranking, and private atomic exports.
+- No authentication, password validation, cookie/token handling, or account mutation added.
+
+## 10.0.2 — HIBP response cleanup and mixed-data QA
+- Đóng body của HTTPError trong email breach lookup và password range lookup trên mọi nhánh lỗi; tránh ResourceWarning do response lỗi chưa được đóng trên Python 3.14.
+- Bổ sung unit test xác nhận response body được đóng với HTTP 404 và HTTP 503.
+- Bổ sung stress test ngoại tuyến 100.000 dòng hỗn hợp: email-only, email:secret, email|secret, địa chỉ sai cú pháp, dòng trống và comment.
+- Kiểm chứng thống kê duplicate và bảo đảm secret tổng hợp không xuất hiện trong báo cáo.
+- Không bổ sung xác thực tài khoản, xử lý cookie/token hoặc thao tác với tài khoản dịch vụ.
+
+## 10.0.1 — Privacy and input-boundary hardening
+- Fixed an oversized-line boundary bug: a line exceeding `max_line_bytes` is rejected even when its newline fits in the first bounded read.
+- Changed exact dataset deduplication from plaintext normalized email keys to per-run keyed HMAC-SHA256 fingerprints; the random key is never persisted and the temporary database is automatically removed.
+- Prevented JSON report export from overwriting the dataset being audited, including identical paths and existing hard links/symlink targets where detectable.
+- Added regression tests for all three cases.
+- No authentication or account-access behavior added.
+
+## 10.0.0 — Data Intelligence foundation
+- Added offline dataset audit for email-only and credential-shaped text files.
+- Secrets after the first delimiter are discarded; never persisted, logged, or exported.
+- Added exact deduplication through a temporary SQLite database containing normalized email keys only; the database is automatically removed.
+- Reports contain aggregate validity, duplicates, provider distribution, top domains, disposable and typo-hint counts.
+- Added bounded batch scheduling: at most 2x worker count in-flight futures, with a hard cap of 128.
+- Aligned package version metadata to 10.0.0.
+- No login attempts, password-reset requests, cookie extraction, or account mutations.
+
+
 ## 9.1.1 — Termux pip bootstrap hotfix
 - Fixed install/release scripts when `python -m pip` is absent on Termux.
 - Scripts now install the official `python-pip` package via `pkg` only when needed, then verify that the active Python interpreter can import pip.
 - Added shell regression tests for pip-present and pip-missing paths.
 - No database, configuration, results, DNS, or DKIM behavior changes in this hotfix.
 
-# Changelog
 
 ## 9.0.0
 - Tái cấu trúc thành package nhiều module.
@@ -75,3 +125,10 @@
 - Added Termux installer for the pinned dkimpy 1.1.8 package and optional Ed25519/PyNaCl backend.
 - Added a synthetic RSA test keypair and CI integration tests: signed message passes; tampered body and signed header fail.
 - Documented dkimpy's RFC 8616 internationalized-email limitation and the fact that DKIM pass is not a malware or human-identity verdict.
+
+
+## 10.1.0 — Android ROOT bridge
+
+- Added read-only `root-audit` for `su`/UID 0, SELinux, Android build basics, kernel, CPU/RAM, Magisk/KernelSU/APatch markers, and up to 8 thermal readings.
+- Added `audit-dataset --root-input` to stream one explicitly selected absolute file via `su -c cat`; reports remain aggregate-only and secret-stripped.
+- No arbitrary shell runner, recursive app-private data crawler, credential login, or system mutation.

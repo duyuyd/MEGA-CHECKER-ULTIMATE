@@ -1,6 +1,6 @@
 from __future__ import annotations
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
@@ -65,21 +65,43 @@ def run_batch(emails: Iterable[str], store: Store, workers: int = 5,
     disposable = load_disposable_domains(disposable_file)
     output: list[EmailResult] = []
     errors = 0
-    with ThreadPoolExecutor(max_workers=max(1, min(int(workers), 32))) as pool:
-        future_map = {pool.submit(check_one, email, inspector, disposable): email for email in work}
-        for future in as_completed(future_map):
-            email = future_map[future]
-            try:
-                result = future.result()
-            except Exception as exc:
-                import logging
-                logging.getLogger("MegaCheckerUltimate").exception("Batch item failed (%s)", type(exc).__name__)
-                result = validate_email(email, disposable)
-                result.errors.append(f"Lỗi nội bộ: {type(exc).__name__}")
-                errors += 1
-            store.save_result(result)
-            store.job_done(job_id, normalize_email(email))
-            output.append(result)
+    worker_count = max(1, min(int(workers), 32))
+    # Bound submitted-but-not-finished work. Some third-party scripts create
+    # thousands of threads per item; this scheduler keeps the queue near 2x
+    # the worker count and preserves graceful per-item completion/resume.
+    max_in_flight = min(128, max(worker_count, worker_count * 2))
+    iterator = iter(work)
+    pending = {}
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+        exhausted = False
+        while pending or not exhausted:
+            while not exhausted and len(pending) < max_in_flight:
+                try:
+                    email = next(iterator)
+                except StopIteration:
+                    exhausted = True
+                    break
+                future = pool.submit(check_one, email, inspector, disposable)
+                pending[future] = email
+            if not pending:
+                break
+            done, _ = wait(tuple(pending), return_when=FIRST_COMPLETED)
+            for future in done:
+                email = pending.pop(future)
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    import logging
+                    logging.getLogger("MegaCheckerUltimate").exception(
+                        "Batch item failed (%s)", type(exc).__name__
+                    )
+                    result = validate_email(email, disposable)
+                    result.errors.append(f"Lỗi nội bộ: {type(exc).__name__}")
+                    errors += 1
+                store.save_result(result)
+                store.job_done(job_id, normalize_email(email))
+                output.append(result)
     store.finish_job(job_id, "completed")
     return output, {"submitted": len(values), "processed_now": len(output),
-                    "skipped_done": len(values)-len(work), "errors": errors}
+                    "skipped_done": len(values)-len(work), "errors": errors,
+                    "worker_count": worker_count, "max_in_flight": max_in_flight}

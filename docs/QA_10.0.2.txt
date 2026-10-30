@@ -1,0 +1,16 @@
+MEGA CHECKER ULTIMATE 10.0.2 — LOCAL QA RECORD
+Scope: HIBP HTTPError response cleanup and offline mixed-dataset regression.
+
+- 100,000 synthetic mixed records: PASS.
+- 95,000 parsed records: PASS.
+- 90,000 valid email records: PASS.
+- 5,000 malformed records: PASS.
+- 45,000 duplicate records: PASS.
+- 45,000 unique valid email identifiers: PASS.
+- 40,000 credential-shaped records parsed without authentication: PASS.
+- Synthetic secret strings absent from JSON report: PASS.
+- HTTP 404 and HTTP 503 error response bodies closed: covered by unit tests.
+
+All dataset stress data is generated locally and is synthetic. No account login,
+password validation, cookie/token action, or live breach lookup is performed.
+Runtime depends on device and Python build; benchmark results are not universal.

@@ -1,0 +1,5 @@
+alice@gmail.com
+bob@outlook.com
+alice@gmail.com
+invalid-email
+charlie@yahoo.com

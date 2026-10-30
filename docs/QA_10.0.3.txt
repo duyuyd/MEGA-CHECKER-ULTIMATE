@@ -1,0 +1,15 @@
+MEGA CHECKER ULTIMATE 10.0.3 — LOCAL QA RECORD
+Scope: batched exact deduplication, bounded domain aggregation, and atomic private reports.
+
+- Unit tests: 77 total, 74 passed, 3 optional DKIM integration tests skipped (dkimpy unavailable in build environment).
+- Mixed synthetic dataset: 100,000 physical lines; 95,000 parsed; 90,000 valid; 5,000 invalid; 45,000 duplicates; 45,000 unique valid identifiers. All 11 expected counters matched.
+- Synthetic secret values absent from serialized report: PASS.
+- ResourceWarning promoted to error during HIBP and dataset stress tests: PASS.
+- Exact duplicate accounting across 2,048-row batch boundary: PASS.
+- Invalid duplicate accounting: PASS.
+- Exact top-20 domain ranking with 30 distinct test domains: PASS.
+- Atomic JSON output and owner-only file permissions (0600): PASS.
+- High-cardinality run: 250,000 unique valid records across 50,000 domains; 0 duplicates; exact top-20 returned; 32.742 seconds in the local Linux build container. This is a reproducibility datapoint, not a Termux performance guarantee.
+- Local mixed stress benchmark: 6.914 seconds / 100,000 physical lines (approximately 14,464 lines/s) in the local Linux build container. A prior unoptimized run in the same container measured 8.726 seconds; approximate improvement 20.8%. Device and dataset composition affect runtime.
+
+All test data is synthetic and local. No account login, password validation, cookie/token action, or live breach lookup is performed.

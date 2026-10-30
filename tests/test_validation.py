@@ -47,6 +47,23 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(second.syntax_status, "invalid")
         self.assertNotEqual(first.normalized_email, second.normalized_email)
 
+
+    def test_validate_email_normalizes_domain_once(self):
+        from unittest.mock import patch
+        import mega_checker.validation as validation
+        original = validation.normalize_domain
+        calls = []
+
+        def counted(value):
+            calls.append(value)
+            return original(value)
+
+        with patch.object(validation, "normalize_domain", side_effect=counted):
+            result = validation.validate_email("User@EXAMPLE.COM")
+        self.assertEqual(result.syntax_status, "valid")
+        self.assertEqual(result.normalized_email, "User@example.com")
+        self.assertEqual(calls, ["EXAMPLE.COM"])
+
     def test_total_address_limit_is_checked_after_idna(self):
         local = "a" * 64
         domain = ".".join(["ü" * 46] * 4)

@@ -1,0 +1,15 @@
+MEGA CHECKER ULTIMATE 10.0.4 — LOCAL QA RECORD
+Scope: parser boundary correctness, validation normalization efficiency, and backward-compatible dataset audit.
+
+- Unit tests: 81 total; 78 passed; 3 optional DKIM integration tests skipped because dkimpy is not installed in the build environment.
+- Unit tests passed in normal mode, with ResourceWarning promoted to error, and with Python -S (site packages disabled).
+- Self-test: 12/12 PASS.
+- Mixed synthetic dataset: 100,000 physical lines; all 11 expected aggregate counters matched. Synthetic secret values absent from serialized report. PASS.
+- Parser regression: secret fields containing colon, pipe, semicolon and comma do not corrupt the email prefix. PASS.
+- Quoted email-only and quoted email-first CSV-style rows. PASS.
+- Validation error histogram contains generic messages and counts only; source addresses are absent. PASS.
+- Domain normalization call count: exactly one for a syntactically addressable email. PASS.
+- ResourceWarning strict mixed stress: PASS.
+- One local Linux mixed-stress run: 8.590 seconds / 100,000 physical lines (11,642 lines/s). This is an environment-specific datapoint, not a Termux performance claim.
+
+All test data is synthetic and local. No account login, password validation, cookie/token action, or live breach lookup is performed.
