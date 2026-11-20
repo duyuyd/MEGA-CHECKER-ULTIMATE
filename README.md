@@ -229,3 +229,4 @@ python mega_checker.py root-audit
 
 `--root-input` remains as an older alias for `--access-mode root`. If ROOT is absent or the grant is declined, the normal No-Root engine remains fully usable. Reports identify the actual `access_mode`. The ROOT bridge is read-only and does not expose arbitrary shell execution, recursive app-private-data scanning, or system mutation.
 
+\n## GitHub standardization (2026-11-21)\n\nThis independent Python/Termux email diagnostics tool retains the MEGA CHECKER brand. A branch-scoped GitHub Actions check normalizes legacy UI/documentation labels only. No Next.js/Capacitor workflow is installed because this is not a Next.js application. No production merge without Founder approval.\n
