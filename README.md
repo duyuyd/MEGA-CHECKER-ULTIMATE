@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 10.2.0
+# MEGA CHECKER ULTIMATE 10.3.0
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -20,7 +20,7 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Bộ self-test ngoại tuyến.
 - Kiểm toán dataset ngoại tuyến email-only hoặc email:secret/email|secret; chỉ báo cáo tổng hợp, không thử đăng nhập và không lưu/log/xuất secret.
 - Bộ lập lịch batch giới hạn số future đồng thời: tối đa 2×worker, trần 128.
-- Metadata phiên bản hiện tại 10.2.0; engine kiểm toán và các module trước được giữ nguyên. Engine audit đọc theo lô 2.048 fingerprint, giới hạn SQLite cache 4 MiB và thống kê top 20 domain chính xác mà không giữ mọi domain trong RAM. Báo cáo JSON được ghi nguyên tử với quyền 0600. Bản 10.0.4 sửa nhận diện dấu phân cách khi secret chứa `:`/`|`, hỗ trợ email được bọc dấu ngoặc kép, loại bỏ lần chuẩn hóa IDNA lặp và bổ sung thống kê lỗi cú pháp tổng hợp không chứa địa chỉ nguồn.
+- Metadata phiên bản hiện tại 10.3.0; engine kiểm toán và các module trước được giữ nguyên. Engine audit đọc theo lô 2.048 fingerprint, giới hạn SQLite cache 4 MiB và thống kê top 20 domain chính xác mà không giữ mọi domain trong RAM. Báo cáo JSON được ghi nguyên tử với quyền 0600. Bản 10.0.4 sửa nhận diện dấu phân cách khi secret chứa `:`/`|`, hỗ trợ email được bọc dấu ngoặc kép, loại bỏ lần chuẩn hóa IDNA lặp và bổ sung thống kê lỗi cú pháp tổng hợp không chứa địa chỉ nguồn.
 
 ## Giới hạn cần hiểu đúng
 
@@ -244,3 +244,14 @@ python mega_checker.py root-audit
 
 `--root-input` remains as an older alias for `--access-mode root`. If ROOT is absent or the grant is declined, the normal No-Root engine remains fully usable. Reports identify the actual `access_mode`. The ROOT bridge is read-only and does not expose arbitrary shell execution, recursive app-private-data scanning, or system mutation.
 
+
+
+## Speed Lab 10.3 — benchmark ngoại tuyến
+
+Chế độ mới đo số lượng chuỗi thử nghiệm bốn ký tự sinh được trên **chính thiết bị**, chặn cứng ở 250.000 mẫu; mặc định 80.000 mẫu. Đó là tốc độ sinh chuỗi giả lập, **không phải** tốc độ giải mã/đoán mật khẩu thực, không thử tài khoản hoặc gửi dữ liệu ra mạng. Thời gian với độ dài khác là ngoại suy toán học và chỉ để tham khảo.
+
+```bash
+python mega_checker.py speed-lab --length 12 --alphabet-size 74 --samples 80000
+```
+
+Trên Android, chọn tab **Tốc độ**, nhập độ dài muốn ước lượng (1–256), bấm **Đo tốc độ trên máy**. Phép đo có giới hạn, chạy trên worker để không khóa giao diện.

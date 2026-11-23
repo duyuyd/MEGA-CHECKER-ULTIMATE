@@ -34,8 +34,9 @@ public final class MainActivity extends Activity {
     private LinearLayout page;
     private TextView heading, instructions, networkNotice, result;
     private EditText field;
-    private Button passwordTab, emailTab, local, online;
+    private Button passwordTab, emailTab, speedTab, local, online;
     private boolean password = true;
+    private boolean speedMode = false;
     private long revision;
     private Future<?> pending;
 
@@ -63,13 +64,18 @@ public final class MainActivity extends Activity {
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         passwordTab = button("Mật khẩu", R.id.tab_password);
         emailTab = button("Email", R.id.tab_email);
+        speedTab = button("Tốc độ", R.id.tab_speed);
         tabs.addView(passwordTab, new LinearLayout.LayoutParams(0, dp(48), 1));
         LinearLayout.LayoutParams second = new LinearLayout.LayoutParams(0, dp(48), 1);
         second.setMargins(dp(8), 0, 0, 0);
         tabs.addView(emailTab, second);
+        LinearLayout.LayoutParams third = new LinearLayout.LayoutParams(0, dp(48), 1);
+        third.setMargins(dp(8), 0, 0, 0);
+        tabs.addView(speedTab, third);
         row(tabs, 20);
         passwordTab.setOnClickListener(v -> select(true));
         emailTab.setOnClickListener(v -> select(false));
+        speedTab.setOnClickListener(v -> selectSpeed());
 
         heading = label(29, true);
         row(heading, 22);
@@ -120,8 +126,11 @@ public final class MainActivity extends Activity {
     }
 
     private void select(boolean usePassword) {
+        speedMode = false;
         password = usePassword;
         field.setText("");
+        local.setText("Phân tích trên máy");
+        online.setVisibility(View.VISIBLE);
         field.setInputType(InputType.TYPE_CLASS_TEXT | (password
             ? InputType.TYPE_TEXT_VARIATION_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             : InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS));
@@ -136,8 +145,31 @@ public final class MainActivity extends Activity {
             : "Khi bấm Tra DNS, ứng dụng chỉ tra tên miền để đọc bản ghi MX, SPF và DMARC.");
         style(passwordTab, password);
         style(emailTab, !password);
+        style(speedTab, false);
         passwordTab.setSelected(password);
         emailTab.setSelected(!password);
+        speedTab.setSelected(false);
+        invalidateResult();
+    }
+
+    private void selectSpeed() {
+        speedMode = true;
+        password = false;
+        field.setText("");
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
+        field.setHint("Độ dài cần ước lượng (1–256)");
+        heading.setText("Đo tốc độ ngoại tuyến");
+        instructions.setText("Duyệt một tập nhỏ chuỗi giả lập ngay trên máy và ước lượng không gian tìm kiếm.");
+        local.setText("Đo tốc độ trên máy");
+        online.setVisibility(View.GONE);
+        networkNotice.setText("Giới hạn 80.000 mẫu bốn ký tự. Không thử mật khẩu hay dịch vụ thật; không gửi dữ liệu.");
+        style(passwordTab, false);
+        style(emailTab, false);
+        style(speedTab, true);
+        passwordTab.setSelected(false);
+        emailTab.setSelected(false);
+        speedTab.setSelected(true);
         invalidateResult();
     }
 
@@ -148,21 +180,32 @@ public final class MainActivity extends Activity {
         result.setVisibility(View.GONE);
         boolean hasInput = field.length() > 0;
         local.setEnabled(hasInput);
-        online.setEnabled(hasInput);
+        online.setEnabled(hasInput && !speedMode);
     }
 
     private void runCheck(boolean network) {
         String value = field.getText().toString();
         if (value.isEmpty()) return;
-        if (value.codePointCount(0, value.length()) > (password ? 256 : 512)) {
+        if (speedMode) {
+            try {
+                int requestedLength = Integer.parseInt(value);
+                if (requestedLength < 1 || requestedLength > 256) throw new NumberFormatException();
+            } catch (NumberFormatException e) {
+                result.setVisibility(View.VISIBLE);
+                result.setText("Nhập độ dài hợp lệ từ 1 đến 256.");
+                return;
+            }
+        }
+        if (!speedMode && value.codePointCount(0, value.length()) > (password ? 256 : 512)) {
             result.setVisibility(View.VISIBLE);
             result.setText(password ? "Mật khẩu dài quá 256 ký tự." : "Địa chỉ email quá dài.");
             return;
         }
         ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(field.getWindowToken(), 0);
         final long ticket = ++revision;
-        final String operation = password ? (network ? "breach_report" : "password_report")
-                                          : (network ? "dns_report" : "email_report");
+        final String operation = speedMode ? "speed_report" : password
+                ? (network ? "breach_report" : "password_report")
+                : (network ? "dns_report" : "email_report");
         local.setEnabled(false);
         online.setEnabled(false);
         result.setVisibility(View.VISIBLE);
@@ -181,7 +224,7 @@ public final class MainActivity extends Activity {
                 pending = null;
                 result.setText(message);
                 local.setEnabled(true);
-                online.setEnabled(true);
+                online.setEnabled(!speedMode);
             });
         });
     }

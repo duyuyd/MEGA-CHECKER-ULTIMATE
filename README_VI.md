@@ -258,3 +258,16 @@ Giới hạn đã biết: dkimpy chưa hỗ trợ đầy đủ email quốc tế
 Termux phân phối pip thành gói riêng. Bản phát hành 9.1.1 tự cài gói này khi cần;
 nếu muốn cài trước bằng tay, chạy `pkg update -y && pkg install -y python-pip`.
 Không dùng `get-pip.py` hoặc nâng cấp pip bằng PyPI trong Termux.
+
+
+## Nâng cấp 10.3.0 — Speed Lab như video
+
+Video sử dụng vòng lặp Python sinh nhiều tổ hợp và có thể chạy hơn 10 phút mà không đo đúng thời gian dự kiến. Bản 10.3.0 thêm bộ benchmark ngoại tuyến tạo tối đa 80.000 mẫu (có thể cấu hình tối đa 250.000 ở CLI), đo tốc độ thực tế của **thiết bị hiện tại** và ước lượng thời gian cho độ dài/bảng ký tự chọn. Không hứa tìm mật khẩu thực tế với tốc độ đo này: hệ thống băm mật khẩu, số ký tự và phần cứng có chi phí khác nhau.
+
+Trên Android chọn tab **Tốc độ** → nhập độ dài (1–256) → **Đo tốc độ trên máy**. Trên Termux chạy:
+
+```bash
+python mega_checker.py speed-lab --length 8 --alphabet-size 74 --samples 80000
+```
+
+Phép thử không gửi mạng, không đọc mật khẩu, không quét tài khoản. Bộ kiểm thử tự động xác nhận giới hạn khối lượng, kết quả đo thật và khả năng chạy hoàn toàn ngoại tuyến.
