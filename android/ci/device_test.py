@@ -79,7 +79,8 @@ def main():
     assert "Tên miền đăng ký: mailinator.com" in report and "email tạm" in report
     print("PASS: packaged suffix and disposable-domain data were read on Android", flush=True)
     tap("run_online")
-    dns = result_contains("DNS cho mailinator.com", "Chưa xác định được kết quả")
+    dns = result_contains("DNS cho mailinator.com")
+    assert all(label in dns for label in ("MX:", "SPF:", "DMARC:", "Nguồn DNS:"))
     print("DNS on the emulator: " + dns, flush=True)
 
     tap("tab_password")

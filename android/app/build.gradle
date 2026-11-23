@@ -17,11 +17,10 @@ android {
 def coreDir = layout.buildDirectory.dir('generated/checkerPython')
 def stageCore = tasks.register('stageCheckerCore', Sync) {
     from('../..') {
-        include 'mega_checker/__init__.py', 'mega_checker/mobile.py', 'mega_checker/password_lab.py',
-                'mega_checker/validation.py', 'mega_checker/models.py', 'mega_checker/suffixes.py',
-                'mega_checker/dnsintel.py', 'mega_checker/hibp.py', 'data/public_suffix_list.dat',
+        include 'mega_checker/*.py', 'data/public_suffix_list.dat',
                 'data/disposable_domains.txt', 'data/README_PSL.txt', 'THIRD_PARTY_NOTICES.md',
                 'LICENSE', 'LICENSE-MPL-2.0'
+        exclude 'mega_checker/test_*.py'
     }
     from('../../vendor') {
         include 'dns/**', 'idna/**', 'certifi/**', '*LICENSE*'

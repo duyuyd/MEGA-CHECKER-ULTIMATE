@@ -10,6 +10,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
+import certifi
 from pathlib import Path
 from typing import Any
 
@@ -68,7 +69,7 @@ def _android_dns_nameservers(cache_seconds: float = 30.0) -> list[str]:
                     continue
                 if normalized not in servers:
                     servers.append(normalized)
-            except (OSError, subprocess.SubprocessError):
+            except (OSError, subprocess.SubprocessError, NotImplementedError):
                 break
         if command_found:
             break
@@ -110,10 +111,7 @@ class _CloudflareDoHResolver:
             lifetime = timeout
         self.lifetime = max(1.0, min(float(lifetime), 15.0))
         self.timeout = min(2.0, self.lifetime)
-        ca_bundle = _VENDOR / "certifi" / "cacert.pem"
-        self._ssl_context = ssl.create_default_context(
-            cafile=str(ca_bundle) if ca_bundle.is_file() else None
-        )
+        self._ssl_context = ssl.create_default_context(cafile=certifi.where())
 
     def resolve(self, name: str, rdtype: str | int, lifetime: float | None = None, **_kwargs: Any) -> list[Any]:
         try:
