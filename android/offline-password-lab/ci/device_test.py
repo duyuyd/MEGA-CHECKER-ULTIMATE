@@ -55,7 +55,7 @@ def main():
     tap("compare_button")
     value = find("result_text", lambda x: "TRÙNG KHỚP CHUỖI MẪU" in x.get("text", ""))
     assert "Không phải xác nhận Gmail" in value.get("text", "")
-    assert find("sample_input").get("text", "") in ("", None)
+    assert find("sample_input").get("text", "") in ("", "Đặt một chuỗi mẫu để kiểm tra"), "Reference field was not cleared"
     print("PASS: local reference match without exposing plaintext", flush=True)
     adb("shell", "am", "start", "-W", "-a", "android.settings.SETTINGS")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
