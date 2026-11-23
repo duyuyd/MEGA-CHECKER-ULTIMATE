@@ -22,11 +22,15 @@ else
     -keyalg RSA -keysize 3072 -validity 10000 -dname "CN=MEGA Checker Android"
   signing_note="APK này dùng khóa riêng của lần build. Khi chuyển sang bản có chữ ký khác, Android yêu cầu gỡ bản cũ trước."
 fi
+echo "Aligning the unsigned APK for 16 KiB native library pages"
+"$tool_dir/zipalign" -P 16 -f 4 "$source_apk" "$work/aligned.apk"
+echo "Signing the aligned release APK"
 "$tool_dir/apksigner" sign --ks "$work/signing.p12" --ks-key-alias "$APK_KEY_ALIAS" \
-  --ks-pass env:APK_STORE_PASSWORD --key-pass env:APK_KEY_PASSWORD --out "$output" "$source_apk"
-"$tool_dir/apksigner" verify --verbose --print-certs "$output" > "$work/certificate.txt"
-certificate="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$work/certificate.txt")"
-test -n "$certificate"
+  --ks-pass env:APK_STORE_PASSWORD --key-pass env:APK_KEY_PASSWORD --out "$output" "$work/aligned.apk"
+echo "Verifying signature and extracting the public certificate fingerprint"
+"$tool_dir/apksigner" verify --verbose --print-certs "$output" | tee "$work/certificate.txt"
+certificate="$(awk '/certificate SHA-256 digest:/ {print $NF; exit}' "$work/certificate.txt")"
+[[ "$certificate" =~ ^[[:xdigit:]]{64}$ ]] || { echo "Missing signer SHA-256 in verification output" >&2; exit 1; }
 "$tool_dir/zipalign" -c -P 16 4 "$output"
 # v4 sidecar files are only used for incremental installation over ADB.
 rm -f -- "$output.idsig"
