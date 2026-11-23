@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="sample_input" type="id"/>
+    <item name="alphabet_input" type="id"/>
+    <item name="benchmark_button" type="id"/>
+    <item name="compare_button" type="id"/>
+    <item name="cancel_button" type="id"/>
+    <item name="result_text" type="id"/>
+    <item name="progress_bar" type="id"/>
+</resources>

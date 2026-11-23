@@ -1,0 +1,21 @@
+plugins {
+    id 'com.android.application' version '8.12.3'
+}
+
+android {
+    namespace 'vn.nptduy.localpasswordlab'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'vn.nptduy.localpasswordlab'
+        minSdk 24
+        targetSdk 35
+        versionCode 1000 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
+        versionName '1.0.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
