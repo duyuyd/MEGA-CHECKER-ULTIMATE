@@ -145,6 +145,22 @@ python mega_checker.py scan -i emails_cua_ban.txt --hibp --confirm-authorized
 
 Không ghi API key vào file chia sẻ công khai. Tra cứu email breach bằng API key là tính năng phụ thuộc gói HIBP có quyền direct email search; giá và giới hạn thay đổi theo gói. Một số chức năng khác cũng phụ thuộc quyền truy cập hiện có. Điều khoản HIBP giới hạn việc dùng API theo API key và quyền phù hợp; xem https://haveibeenpwned.com/termsofuse.
 
+## So sánh độ dài mật khẩu trên Termux
+
+Trong menu, chọn **6** để so sánh hai ví dụ trong video hoặc **7** để nhập ẩn một ví dụ của bạn. Có thể chạy trực tiếp từ thư mục dự án.
+
+```bash
+python mega_checker.py password-lab
+python mega_checker.py password-lab --prompt
+python mega_checker.py password-lab --length 12 --alphabet-size 74 --rate 1000000
+```
+
+Với `ac12!`, bảng 48 ký tự cho 254.803.968 chuỗi dài đúng 5 ký tự và 260.225.328 chuỗi dài từ 1 đến 5. Với `ABcd12!`, độ dài tăng lên 7 và bảng có thêm 26 chữ hoa. Mỗi vị trí có thể dùng lại mọi ký tự trong bảng.
+
+Cột thời gian lấy tổng số chuỗi từ độ dài 1 đến độ dài đã chọn chia cho tốc độ giả định. Bạn có thể đổi tốc độ bằng `--rate`. Công cụ tính trực tiếp bằng công thức nên chạy được ngoại tuyến trên điện thoại.
+
+Khi nhập ẩn, chương trình chỉ dùng độ dài và các nhóm ký tự để lập mô hình. Với chữ tiếng Việt có dấu hoặc ký tự ngoài các nhóm của video, chương trình hỏi cỡ bảng. Bạn cũng có thể chỉ định `--alphabet-size`. Độ dài đếm theo điểm mã Unicode. Chế độ này xử lý trong bộ nhớ và không ghi ví dụ vào lịch sử lệnh, tệp hoặc cơ sở dữ liệu.
+
 ## Kiểm tra mật khẩu bằng k-anonymity (tùy chọn)
 
 ```bash

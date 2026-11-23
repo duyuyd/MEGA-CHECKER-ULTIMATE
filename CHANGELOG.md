@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Chưa phát hành
+- Thêm `password-lab` và hai mục trong menu Termux để so sánh số chuỗi, thay đổi tốc độ giả định và nhập ẩn ví dụ cá nhân. Phép tính thực hiện ngoại tuyến trong bộ nhớ.
+
 ## 10.1.1 — No-Root first, optional ROOT fallback
 - Reframed Android access into `auto`, `noroot`, and `root` modes; the default first uses ordinary Termux permissions.
 - `auto` invokes `su` only after an operating-system `PermissionError`; normal readable files never trigger a ROOT prompt.

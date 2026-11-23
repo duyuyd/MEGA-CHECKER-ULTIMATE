@@ -14,6 +14,7 @@ from .dkim import (parse_dkim_signature_headers, read_header_file, read_clipboar
                    normalize_selector)
 from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
+from .password_lab import DEFAULT_RATE, run_password_lab
 from .pipeline import check_one, read_emails, run_batch
 from .storage import Store
 from .validation import load_disposable_domains
@@ -90,6 +91,14 @@ def _make_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", help="Thống kê database")
     sub.add_parser("backup", help="Sao lưu database")
     sub.add_parser("password-audit", help="Kiểm tra mật khẩu bằng HIBP k-anonymity")
+    lab = sub.add_parser("password-lab", help="So sánh các ví dụ mật khẩu bằng mô hình ngoại tuyến",
+                         description="Mặc định so sánh hai ví dụ trong video. Tốc độ là giả định.")
+    source = lab.add_mutually_exclusive_group()
+    source.add_argument("--length", type=int, help="Độ dài muốn tính, dùng cùng --alphabet-size")
+    source.add_argument("--prompt", action="store_true", help="Nhập ẩn một ví dụ ngay trên máy")
+    lab.add_argument("--alphabet-size", type=int, help="Số ký tự có thể chọn ở mỗi vị trí")
+    lab.add_argument("--rate", type=int, default=DEFAULT_RATE,
+                     help=f"Tốc độ mô hình theo lượt/giây (mặc định {DEFAULT_RATE})")
     sub.add_parser("config-check", help="Kiểm tra và hiển thị cấu hình đang dùng")
     sub.add_parser("menu", help="Mở menu tương tác")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -145,18 +154,34 @@ def _scan_hibp(results, authorised: bool) -> None:
             result.errors.append(str(exc))
 
 
-def interactive_menu(config: dict) -> int:
-    db_file = Path(config["database"])
-    data_file = Path(config["disposable_domains_file"])
-    backup_dir = Path(config["backup_directory"])
+def interactive_menu(config: dict | None = None, *, config_path: Path | None = None) -> int:
     print(f"\n{APP_NAME} v{__version__}")
     print("1. Kiểm tra một email")
     print("2. Quét danh sách email từ file")
     print("3. Thống kê database")
     print("4. Xuất CSV")
     print("5. Sao lưu database")
+    print("6. So sánh hai ví dụ mật khẩu trong video (ngoại tuyến)")
+    print("7. Nhập ẩn một ví dụ mật khẩu để tính trên máy")
     print("0. Thoát")
     choice = input("Chọn: ").strip()
+    if choice in {"6", "7"}:
+        return run_password_lab(prompt=choice == "7")
+    if choice == "0":
+        return 0
+    if choice not in {"1", "2", "3", "4", "5"}:
+        print("Lựa chọn không hợp lệ.")
+        return 2
+    if config is None:
+        try:
+            config = load_config(config_path)
+        except ValueError as exc:
+            print(f"Cấu hình lỗi: {exc}", file=sys.stderr)
+            return 2
+        setup_logging(config)
+    db_file = Path(config["database"])
+    data_file = Path(config["disposable_domains_file"])
+    backup_dir = Path(config["backup_directory"])
     if choice == "1":
         result = check_one(input("Email: ").strip(), DomainInspector(config["dns_timeout_seconds"]),
                            load_disposable_domains(data_file))
@@ -197,17 +222,17 @@ def interactive_menu(config: dict) -> int:
             print(f"Backup: {store.backup(backup_dir)}")
         finally:
             store.close()
-    elif choice == "0":
-        return 0
-    else:
-        print("Lựa chọn không hợp lệ.")
-        return 2
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _make_parser()
     args = parser.parse_args(argv)
+    if args.command == "password-lab":
+        return run_password_lab(length=args.length, alphabet_size=args.alphabet_size,
+                                rate=args.rate, prompt=args.prompt)
+    if args.command in (None, "menu"):
+        return interactive_menu(config_path=Path(args.config))
     try:
         config = load_config(Path(args.config))
     except ValueError as exc:
@@ -217,8 +242,6 @@ def main(argv: list[str] | None = None) -> int:
     db_file = Path(args.db).expanduser() if args.db else Path(config["database"])
     data_file = Path(config["disposable_domains_file"])
 
-    if not args.command:
-        return interactive_menu(config)
     if args.command == "self-test":
         return _self_test()
     if args.command == "root-audit":
@@ -407,8 +430,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "backup":
             print(f"Đã sao lưu: {store.backup(Path(config['backup_directory']))}")
             return 0
-        if args.command == "menu":
-            return interactive_menu(config)
         parser.print_help()
         return 0
     finally:
