@@ -1,0 +1,80 @@
+name: Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android/**', 'mega_checker/**', 'data/**', 'vendor/**', '.github/workflows/android-apk.yml']
+  pull_request:
+    paths: ['android/**', 'mega_checker/**', 'data/**', 'vendor/**', '.github/workflows/android-apk.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test APK on Android 14
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Assemble release
+        run: gradle -p android --no-daemon :app:assembleRelease
+      - name: Sign and verify APK
+        env:
+          APK_KEYSTORE_B64: ${{ github.ref == 'refs/heads/main' && secrets.ANDROID_KEYSTORE_BASE64 || '' }}
+          APK_STORE_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.ANDROID_STORE_PASSWORD || '' }}
+          APK_KEY_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.ANDROID_KEY_PASSWORD || '' }}
+          APK_KEY_ALIAS: ${{ github.ref == 'refs/heads/main' && secrets.ANDROID_KEY_ALIAS || '' }}
+        run: bash android/ci/sign.sh
+      - name: Enable emulator acceleration
+        run: sudo chmod a+rw /dev/kvm
+      - name: Install signed APK and exercise the user interface
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: python android/ci/device_test.py dist/MEGA-Checker-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mega-checker-android
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish verified APK on GitHub Releases
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mega-checker-android
+          path: dist
+      - name: Publish APK, checksum and signing information
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum --check SHA256SUMS.txt
+          tag="android-10.2.0-${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" MEGA-Checker-Android.apk SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "MEGA Checker Android 10.2.0 · build $GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" \
+            --notes-file release-notes.txt
