@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application' version '8.12.3'
+    id 'com.chaquo.python' version '17.2.0'
+}
+android {
+    namespace 'vn.megachecker.android'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'vn.megachecker.android'
+        minSdk 24
+        targetSdk 35
+        versionCode 102000 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
+        versionName '10.2.0'
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+    }
+}
+def coreDir = layout.buildDirectory.dir('generated/checkerPython')
+def stageCore = tasks.register('stageCheckerCore', Sync) {
+    from('../..') {
+        include 'mega_checker/__init__.py', 'mega_checker/mobile.py', 'mega_checker/password_lab.py',
+                'mega_checker/validation.py', 'mega_checker/models.py', 'mega_checker/suffixes.py',
+                'mega_checker/dnsintel.py', 'mega_checker/hibp.py', 'data/public_suffix_list.dat',
+                'data/disposable_domains.txt', 'data/README_PSL.txt', 'THIRD_PARTY_NOTICES.md',
+                'LICENSE', 'LICENSE-MPL-2.0'
+    }
+    from('../../vendor') {
+        include 'dns/**', 'idna/**', 'certifi/**', '*LICENSE*'
+        exclude '**/__pycache__/**', '**/*.pyc'
+    }
+    into coreDir
+}
+chaquopy {
+    defaultConfig { version = '3.12' }
+    sourceSets.getByName('main') { srcDir(stageCore) }
+}
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('PythonSources') }.configureEach {
+    dependsOn stageCore
+}

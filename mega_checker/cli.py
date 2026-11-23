@@ -91,11 +91,11 @@ def _make_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", help="Thống kê database")
     sub.add_parser("backup", help="Sao lưu database")
     sub.add_parser("password-audit", help="Kiểm tra mật khẩu bằng HIBP k-anonymity")
-    lab = sub.add_parser("password-lab", help="So sánh các ví dụ mật khẩu bằng mô hình ngoại tuyến",
-                         description="Mặc định so sánh hai ví dụ trong video. Tốc độ là giả định.")
+    lab = sub.add_parser("password-lab", help="Phân tích mật khẩu nhập ẩn trên thiết bị",
+                         description="Mặc định nhập mật khẩu ẩn và phân tích ngay trên máy.")
     source = lab.add_mutually_exclusive_group()
     source.add_argument("--length", type=int, help="Độ dài muốn tính, dùng cùng --alphabet-size")
-    source.add_argument("--prompt", action="store_true", help="Nhập ẩn một ví dụ ngay trên máy")
+    source.add_argument("--prompt", action="store_true", help="Nhập ẩn mật khẩu ngay trên máy")
     lab.add_argument("--alphabet-size", type=int, help="Số ký tự có thể chọn ở mỗi vị trí")
     lab.add_argument("--rate", type=int, default=DEFAULT_RATE,
                      help=f"Tốc độ mô hình theo lượt/giây (mặc định {DEFAULT_RATE})")
@@ -161,12 +161,20 @@ def interactive_menu(config: dict | None = None, *, config_path: Path | None = N
     print("3. Thống kê database")
     print("4. Xuất CSV")
     print("5. Sao lưu database")
-    print("6. So sánh hai ví dụ mật khẩu trong video (ngoại tuyến)")
-    print("7. Nhập ẩn một ví dụ mật khẩu để tính trên máy")
+    print("6. Tính số tổ hợp theo độ dài và bảng ký tự")
+    print("7. Phân tích mật khẩu nhập ẩn trên máy")
     print("0. Thoát")
     choice = input("Chọn: ").strip()
-    if choice in {"6", "7"}:
-        return run_password_lab(prompt=choice == "7")
+    if choice == "7":
+        return run_password_lab(prompt=True)
+    if choice == "6":
+        try:
+            length = int(input("Độ dài mật khẩu: "))
+            alphabet = int(input("Số ký tự có thể chọn ở mỗi vị trí: "))
+        except (EOFError, ValueError):
+            print("Hãy nhập độ dài và cỡ bảng bằng số nguyên.", file=sys.stderr)
+            return 2
+        return run_password_lab(length=length, alphabet_size=alphabet)
     if choice == "0":
         return 0
     if choice not in {"1", "2", "3", "4", "5"}:

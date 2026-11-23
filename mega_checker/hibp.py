@@ -2,6 +2,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import ssl
 import threading
 import time
@@ -80,13 +81,22 @@ def check_password_k_anonymity(password: str, timeout: float = 12.0) -> dict:
     try:
         with urllib.request.urlopen(request, timeout=timeout,
                                     context=_verified_ssl_context()) as response:
-            for line in response.read(2_000_000).decode("ascii", "ignore").splitlines():
-                candidate, _, count = line.partition(":")
-                if candidate.upper() == suffix:
-                    return {"status": "found", "count": int(count or 0),
+            maximum = 2_000_000
+            payload = response.read(maximum + 1)
+            if not payload or len(payload) > maximum:
+                raise HIBPError("Phản hồi Pwned Passwords thiếu hoặc quá lớn.")
+            for line in payload.decode("ascii").splitlines():
+                if not re.fullmatch(r"[0-9A-Fa-f]{35}:[0-9]{1,15}", line):
+                    raise HIBPError("Phản hồi Pwned Passwords sai định dạng.")
+                candidate, count_text = line.split(":")
+                count = int(count_text)
+                if count and candidate.upper() == suffix:
+                    return {"status": "found", "count": count,
                             "method": "k-anonymity (5-char prefix only)"}
         return {"status": "not_found", "count": 0,
                 "method": "k-anonymity (5-char prefix only)"}
+    except HIBPError:
+        raise
     except urllib.error.HTTPError as exc:
         status = exc.code
         exc.close()

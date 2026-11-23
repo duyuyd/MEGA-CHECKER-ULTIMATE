@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## Chưa phát hành
-- Thêm `password-lab` và hai mục trong menu Termux để so sánh số chuỗi, thay đổi tốc độ giả định và nhập ẩn ví dụ cá nhân. Phép tính thực hiện ngoại tuyến trong bộ nhớ.
+## 10.2.0 — Android và kiểm tra dữ liệu nhập
+- Thêm APK Android độc lập với bộ phân tích mật khẩu, kiểm tra email ngoại tuyến, tra DNS và tra cứu rò rỉ theo yêu cầu.
+- CLI và Android dùng chung mã phân tích. Lệnh mặc định đọc mật khẩu nhập ẩn, nhận diện chuỗi lặp và đo thời gian xử lý trên thiết bị.
+- Thêm quy trình GitHub Actions ký, xác minh, cài APK trên Android 14 và phát hành APK từ main.
+- Bản ghi đệm có số lượt bằng 0 của Pwned Passwords được bỏ qua. Phản hồi lỗi hoặc thiếu dữ liệu trả về trạng thái chưa xác định.
 
 ## 10.1.1 — No-Root first, optional ROOT fallback
 - Reframed Android access into `auto`, `noroot`, and `root` modes; the default first uses ordinary Termux permissions.

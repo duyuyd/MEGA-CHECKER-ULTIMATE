@@ -1,4 +1,4 @@
-# MEGA CHECKER ULTIMATE 10.1.1
+# MEGA CHECKER ULTIMATE 10.2.0
 
 Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để chạy trên Android/Termux và Linux.
 
@@ -21,7 +21,7 @@ Bộ kiểm tra vệ sinh email và chẩn đoán domain, thiết kế để ch�
 - Bộ stress test dataset hỗn hợp 100.000 dòng chạy hoàn toàn offline: `python scripts/dataset_stress_test.py`; dữ liệu synthetic tự sinh trong thư mục tạm và tự xóa sau khi chạy.
 - Kiểm toán dataset ngoại tuyến dạng email-only hoặc email:secret/email|secret; chỉ tạo thống kê tổng hợp, không thử đăng nhập, không lưu/log/xuất phần secret. Dedupe chính xác bằng HMAC-SHA256 có khóa ngẫu nhiên theo phiên, chỉ lưu fingerprint trong SQLite tạm tự xóa; khóa không ghi ra đĩa.
 - Scheduler batch giới hạn số tác vụ đang chờ ở mức tối đa 2×worker (trần 128). Bản 10.0.3 tối ưu audit dataset bằng HMAC theo lô 2.048 bản ghi, SQLite cache 4 MiB và top 20 domain chính xác trong SQLite. Bản 10.0.4 sửa parser để dấu phân cách trong secret không làm hỏng email, chấp nhận email có dấu ngoặc kép, chỉ chuẩn hóa domain một lần và xuất thống kê lỗi tổng hợp không chứa dữ liệu nguồn.
-- Metadata phiên bản package hiện tại 10.1.1; các gia cố quyền riêng tư, HIBP cleanup, DKIM và Termux từ các bản trước được giữ nguyên.
+- Metadata phiên bản package hiện tại 10.2.0; các gia cố quyền riêng tư, HIBP cleanup, DKIM và Termux từ các bản trước được giữ nguyên.
 
 ## Android Dual Access 10.1.1 — No-Root trước, ROOT tùy chọn
 
@@ -179,21 +179,20 @@ python mega_checker.py scan -i emails_cua_ban.txt --hibp --confirm-authorized
 
 Không ghi API key vào file chia sẻ công khai. Tra cứu email breach bằng API key là tính năng phụ thuộc gói HIBP có quyền direct email search; giá và giới hạn thay đổi theo gói. Một số chức năng khác cũng phụ thuộc quyền truy cập hiện có. Điều khoản HIBP giới hạn việc dùng API theo API key và quyền phù hợp; xem https://haveibeenpwned.com/termsofuse.
 
-## So sánh độ dài mật khẩu trên Termux
+## Android và Termux
 
-Trong menu, chọn **6** để so sánh hai ví dụ trong video hoặc **7** để nhập ẩn một ví dụ của bạn. Có thể chạy trực tiếp từ thư mục dự án.
+[Tải APK Android trên GitHub Releases](https://github.com/duyuyd/MEGA-CHECKER-ULTIMATE/releases/latest). Ứng dụng chạy độc lập trên Android 7 trở lên (ARM64 và x86_64). Nhập mật khẩu vào ô ẩn rồi chọn **Phân tích trên máy** để xem độ dài, số ký tự khác nhau, quy luật lặp và thời gian phân tích đo trên thiết bị. Khi có đủ thông tin về bảng ký tự, ứng dụng hiển thị thêm số tổ hợp và thời gian lý thuyết để xét hết.
+
+Chọn **Email** để kiểm tra cấu trúc, tên miền đăng ký và tên miền email tạm. Hai phép phân tích này chạy ngoại tuyến. Nút **Kiểm tra rò rỉ** gửi tiền tố 5 ký tự của mã băm SHA-1 tới Pwned Passwords. Nút **Tra DNS tên miền** lấy bản ghi DNS của tên miền thư. Khi đưa ứng dụng xuống nền, ô nhập và kết quả được xóa.
+
+Trên Termux, chọn mục 7 để nhập ẩn mật khẩu hoặc mục 6 để tính với độ dài và cỡ bảng tự chọn.
 
 ```bash
 python mega_checker.py password-lab
-python mega_checker.py password-lab --prompt
 python mega_checker.py password-lab --length 12 --alphabet-size 74 --rate 1000000
 ```
 
-Với `ac12!`, bảng 48 ký tự cho 254.803.968 chuỗi dài đúng 5 ký tự và 260.225.328 chuỗi dài từ 1 đến 5. Với `ABcd12!`, độ dài tăng lên 7 và bảng có thêm 26 chữ hoa. Mỗi vị trí có thể dùng lại mọi ký tự trong bảng.
-
-Cột thời gian lấy tổng số chuỗi từ độ dài 1 đến độ dài đã chọn chia cho tốc độ giả định. Bạn có thể đổi tốc độ bằng `--rate`. Công cụ tính trực tiếp bằng công thức nên chạy được ngoại tuyến trên điện thoại.
-
-Khi nhập ẩn, chương trình chỉ dùng độ dài và các nhóm ký tự để lập mô hình. Với chữ tiếng Việt có dấu hoặc ký tự ngoài các nhóm của video, chương trình hỏi cỡ bảng. Bạn cũng có thể chỉ định `--alphabet-size`. Độ dài đếm theo điểm mã Unicode. Chế độ này xử lý trong bộ nhớ và không ghi ví dụ vào lịch sử lệnh, tệp hoặc cơ sở dữ liệu.
+GitHub Actions đóng gói mã Python của dự án, ký APK, xác minh chữ ký và cài đúng APK đó trên máy ảo Android 14 trước khi phát hành. Để duy trì cùng chữ ký cho các lần cập nhật, workflow hỗ trợ các Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS` và tùy chọn `ANDROID_KEY_PASSWORD`. Khi kho chưa cấu hình khóa, GitHub tạo khóa riêng cho từng lần build và ghi loại chữ ký trong ghi chú phát hành.
 
 ## Kiểm tra mật khẩu bằng k-anonymity (tùy chọn)
 

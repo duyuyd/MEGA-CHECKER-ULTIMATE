@@ -1,0 +1,5 @@
+<resources>
+    <item type="id" name="tab_password"/><item type="id" name="tab_email"/>
+    <item type="id" name="field"/><item type="id" name="run_local"/>
+    <item type="id" name="run_online"/><item type="id" name="result"/>
+</resources>

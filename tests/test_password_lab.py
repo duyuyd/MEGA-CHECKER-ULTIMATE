@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from mega_checker.cli import main
-from mega_checker.password_lab import MAX_ALPHABET, MAX_LENGTH, combination_counts
+from mega_checker.password_lab import MAX_ALPHABET, MAX_LENGTH, combination_counts, password_report
 
 
 def run_cli(*args):
@@ -40,21 +40,34 @@ class PasswordLabTests(unittest.TestCase):
             with self.subTest(length=length, alphabet=alphabet), self.assertRaises(ValueError):
                 combination_counts(length, alphabet)
 
-    def test_demo_and_both_menu_entry_points_work_offline_without_files(self):
+    def test_default_and_private_menu_use_the_actual_input_offline(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
             flags = ("--config", str(folder / "config.json"), "--db", str(folder / "data.db"))
-            with patch("socket.getaddrinfo", side_effect=AssertionError("DNS")), \
-                    patch("socket.socket.connect", side_effect=AssertionError("network")), \
-                    patch("builtins.input", return_value="6"):
+            with patch("socket.socket.connect", side_effect=AssertionError("network")), \
+                    patch("sys.stdin.isatty", return_value=True), \
+                    patch("getpass.getpass", return_value="abababab"), patch("builtins.input", return_value="7"):
                 for args in (("password-lab",), (), ("menu",)):
-                    with self.subTest(args=args):
-                        code, out, err = run_cli(*flags, *args)
-                        self.assertEqual(code, 0, err)
-                        self.assertIn("260.225.328", out)
-                        self.assertIn("12.317.736.167.174", out)
-                        self.assertIn("47.335", out)
+                    code, out, err = run_cli(*flags, *args)
+                    self.assertEqual(code, 0, err)
+                    self.assertIn("8 ký tự · 2 ký tự khác nhau", out)
+                    self.assertIn("lặp lại cùng một cụm", out)
+                    self.assertNotIn("abababab", out + err)
             self.assertEqual(list(folder.iterdir()), [])
+
+    def test_numeric_menu_uses_supplied_dimensions(self):
+        with patch("builtins.input", side_effect=["6", "2", "3"]):
+            code, out, err = run_cli("menu")
+        self.assertEqual(code, 0, err)
+        self.assertIn("12 chuỗi", out)
+
+    def test_patterns_and_real_measurement(self):
+        self.assertIn("phím liền kề", password_report("xy4321ab"))
+        self.assertIn("khoảng trắng", password_report("    "))
+        self.assertIn("bốn ký tự", password_report("aaaa test"))
+        natural = password_report("Giữa hồ sen, trời xanh!")
+        self.assertIn("Thời gian phân tích trên máy", natural)
+        self.assertNotIn("Giữa hồ", natural)
 
     def test_rate_only_changes_estimated_duration(self):
         args = ("password-lab", "--length", "2", "--alphabet-size", "3", "--rate")
@@ -78,17 +91,19 @@ class PasswordLabTests(unittest.TestCase):
                 patch("socket.socket.connect", side_effect=AssertionError("network")):
             code, out, err = run_cli("menu")
         self.assertEqual(code, 0, err)
-        self.assertIn("5 ký tự · bảng 74", out)
+        self.assertIn("5 ký tự · 5 ký tự khác nhau", out)
+        self.assertIn("bảng 74 ký tự", out)
         self.assertNotIn(sample, out + err)
 
     def test_custom_unicode_alphabet_and_spaces(self):
         sample = " Đỏ "
         with patch("sys.stdin.isatty", return_value=True), patch("getpass.getpass", return_value=sample), \
-                patch("builtins.input", return_value=" 10 ") as ask:
+                patch("builtins.input", side_effect=AssertionError("unexpected prompt")):
             code, out, err = run_cli("password-lab", "--prompt")
-            ask.assert_called_once()
             self.assertEqual(code, 0, err)
-            self.assertIn("4 ký tự · bảng 10", out)
+            self.assertIn("4 ký tự · 3 ký tự khác nhau", out)
+            code, out, err = run_cli("password-lab", "--prompt", "--alphabet-size", "10")
+            self.assertEqual(code, 0, err)
             self.assertIn("11.110 chuỗi", out)
             self.assertNotIn(sample, out + err)
             code, out, err = run_cli("password-lab", "--prompt", "--alphabet-size", "2")

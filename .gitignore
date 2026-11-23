@@ -49,3 +49,12 @@ root_report*.json
 *.sqlite3
 cookies.txt
 tokens.txt
+
+# Android build output and local signing material
+android/.gradle/
+android/**/build/
+android/local.properties
+*.jks
+*.p12
+*.keystore
+/dist/

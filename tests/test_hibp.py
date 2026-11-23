@@ -48,5 +48,15 @@ class HIBPTests(unittest.TestCase):
         self.assertEqual(result["status"], "found")
         self.assertEqual(result["count"], 7)
 
+    def test_padding_or_invalid_response_never_becomes_a_breach_or_clean_verdict(self):
+        suffix = hashlib.sha1(b"qa").hexdigest().upper()[5:]
+        for data in (b"", b"bad", b"A" * 2_000_001):
+            with self.subTest(size=len(data)), patch("mega_checker.hibp.urllib.request.urlopen", return_value=io.BytesIO(data)):
+                with self.assertRaises(HIBPError):
+                    check_password_k_anonymity("qa")
+        with patch("mega_checker.hibp.urllib.request.urlopen", return_value=io.BytesIO(f"{suffix}:0\n".encode())):
+            self.assertEqual(check_password_k_anonymity("qa")["status"], "not_found")
+
+
 if __name__ == "__main__":
     unittest.main()
