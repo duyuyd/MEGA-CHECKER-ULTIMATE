@@ -8,7 +8,7 @@ public final class EngineSelfTest {
     }
 
     public static void main(String[] args) {
-        check(CandidateEngine.normalizeAlphabet("aaBbππ•√")[2] == 'π',
+        check(CandidateEngine.normalizeAlphabet("aaBbππ•√")[3] == 'π',
                 "Unicode alphabet must deduplicate and retain order");
         CandidateEngine.Report exact = CandidateEngine.run("ab", "ba", 100, null, () -> false);
         check(exact.matchedReference && exact.attempts == 5, "Known local reference 'ba'");
