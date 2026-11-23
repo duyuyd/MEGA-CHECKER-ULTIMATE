@@ -83,6 +83,14 @@ def main():
     assert all(label in dns for label in ("MX:", "SPF:", "DMARC:", "Nguồn DNS:"))
     print("DNS on the emulator: " + dns, flush=True)
 
+    tap("tab_speed")
+    assert find("field").get("password") == "false"
+    enter("8")
+    tap("run_local")
+    report = result_contains("Tốc độ thực đo:")
+    assert "Không thử đăng nhập" in report and "80.000" in report
+    print("PASS: bounded on-device speed benchmark without network access", flush=True)
+
     tap("tab_password")
     enter("password")
     tap("run_online")

@@ -3,6 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .password_lab import password_report
+from .speed_lab import speed_report as _speed_report
 from .validation import load_disposable_domains, validate_email
 
 
@@ -44,3 +45,8 @@ def breach_report(value: str) -> str:
     if result["status"] == "found":
         return f"Đã có trong dữ liệu rò rỉ. Số lần ghi nhận: {result['count']:,}.".replace(",", ".")
     return "Chưa thấy mật khẩu này trong dữ liệu Pwned Passwords đã tra cứu."
+
+
+def speed_report(value: str) -> str:
+    """Measure synthetic speed locally; only a numeric length is accepted."""
+    return _speed_report(value)

@@ -15,6 +15,7 @@ from .dkim import (parse_dkim_signature_headers, read_header_file, read_clipboar
 from .validation import normalize_domain
 from .hibp import HIBPError, check_breached_email, check_password_k_anonymity
 from .password_lab import DEFAULT_RATE, run_password_lab
+from .speed_lab import DEFAULT_SAMPLES, run_speed_lab
 from .pipeline import check_one, read_emails, run_batch
 from .storage import Store
 from .validation import load_disposable_domains
@@ -99,6 +100,10 @@ def _make_parser() -> argparse.ArgumentParser:
     lab.add_argument("--alphabet-size", type=int, help="Số ký tự có thể chọn ở mỗi vị trí")
     lab.add_argument("--rate", type=int, default=DEFAULT_RATE,
                      help=f"Tốc độ mô hình theo lượt/giây (mặc định {DEFAULT_RATE})")
+    speed = sub.add_parser("speed-lab", help="Đo tốc độ tạo chuỗi giả lập ngoại tuyến trên máy")
+    speed.add_argument("--length", required=True, type=int, help="Độ dài muốn ước lượng, từ 1 đến 256")
+    speed.add_argument("--alphabet-size", type=int, default=74, help="Cỡ bảng ký tự để ước lượng")
+    speed.add_argument("--samples", type=int, default=DEFAULT_SAMPLES, help="Số mẫu tối đa 250000")
     sub.add_parser("config-check", help="Kiểm tra và hiển thị cấu hình đang dùng")
     sub.add_parser("menu", help="Mở menu tương tác")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -163,10 +168,19 @@ def interactive_menu(config: dict | None = None, *, config_path: Path | None = N
     print("5. Sao lưu database")
     print("6. Tính số tổ hợp theo độ dài và bảng ký tự")
     print("7. Phân tích mật khẩu nhập ẩn trên máy")
+    print("8. Đo tốc độ mô phỏng ngoại tuyến trên thiết bị")
     print("0. Thoát")
     choice = input("Chọn: ").strip()
     if choice == "7":
         return run_password_lab(prompt=True)
+    if choice == "8":
+        try:
+            length = int(input("Độ dài muốn ước lượng (1–256): "))
+            alphabet = int(input("Số ký tự trong bảng (vd. 74): "))
+        except (EOFError, ValueError):
+            print("Hãy nhập số nguyên hợp lệ.", file=sys.stderr)
+            return 2
+        return run_speed_lab(length=length, alphabet_size=alphabet)
     if choice == "6":
         try:
             length = int(input("Độ dài mật khẩu: "))
@@ -239,6 +253,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "password-lab":
         return run_password_lab(length=args.length, alphabet_size=args.alphabet_size,
                                 rate=args.rate, prompt=args.prompt)
+    if args.command == "speed-lab":
+        return run_speed_lab(length=args.length, alphabet_size=args.alphabet_size,
+                             samples=args.samples)
     if args.command in (None, "menu"):
         return interactive_menu(config_path=Path(args.config))
     try:

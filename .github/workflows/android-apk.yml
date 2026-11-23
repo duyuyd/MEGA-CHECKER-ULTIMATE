@@ -73,8 +73,8 @@ jobs:
         run: |
           cd dist
           sha256sum --check SHA256SUMS.txt
-          tag="android-10.2.0-${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          tag="android-10.3.0-${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
           gh release create "$tag" MEGA-Checker-Android.apk SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "MEGA Checker Android 10.2.0 · build $GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" \
+            --title "MEGA Checker Android 10.3.0 · build $GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" \
             --notes-file release-notes.txt
